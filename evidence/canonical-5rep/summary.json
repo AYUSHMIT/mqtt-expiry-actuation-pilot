@@ -1,0 +1,17 @@
+{
+  "contract": "MQTT-EXPIRY-1.0",
+  "repetitions": 5,
+  "controls_pass": true,
+  "qualified_baseline_late_count": 5,
+  "counts": {
+    "BROKER_CONTROL_PASS": 5,
+    "ON_TIME_VIRTUAL_ACTUATION": 20,
+    "LATE_VIRTUAL_ACTUATION": 10,
+    "REJECTED_AT_EXECUTION_CHECK": 5
+  },
+  "candidate_trials_valid": true,
+  "stock_reproduction_gate": true,
+  "poster_decision": "NOT_AUTOMATIC: native virtual endpoint and controlled service occupancy; requires a meaningful real-integration result and novelty review.",
+  "mqtt_protocol_violation_claimed": false,
+  "physical_actuation_tested": false
+}

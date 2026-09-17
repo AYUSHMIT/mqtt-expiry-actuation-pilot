@@ -1,0 +1,10 @@
+# Dedicated lab instance: never merge into a live home installation.
+default_config:
+homeassistant:
+  name: MQTT Expiry Lab
+  time_zone: UTC
+  packages: !include_dir_named packages
+logger:
+  default: warning
+  logs:
+    homeassistant.components.mqtt: info

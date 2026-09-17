@@ -1,0 +1,164 @@
+# Stock Home Assistant YAML only; no custom integrations, Python actions, or adapters.
+# The button is a native VIRTUAL actuator, not evidence of a physical electrical action.
+# Each accepted job presses immediately once it starts, then occupies its worker for 8 s.
+# This is a controlled queueing surrogate, not a measured commercial-device latency.
+# Deadline checks use UTC and are evaluated only at the declared site.
+# The ingress probe and stage events are measurement instrumentation.
+input_button:
+  expiry_baseline_queued:
+    name: Expiry Baseline Queued
+  expiry_baseline_parallel:
+    name: Expiry Baseline Parallel
+  expiry_admission_queued:
+    name: Expiry Admission Queued
+  expiry_execution_queued:
+    name: Expiry Execution Queued
+automation:
+- id: mqtt_expiry_ingress_probe
+  alias: MQTT Expiry Ingress Probe
+  mode: parallel
+  max: 100
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v1/command/+
+    qos: 1
+  actions:
+  - event: expiry_lab_received
+    event_data:
+      command_id: '{{ trigger.payload_json.id }}'
+      case: '{{ trigger.topic.split(''/'')[-1] }}'
+      issued_at_ms: '{{ trigger.payload_json.issued_at_ms }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      qos: '{{ trigger.qos }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_baseline_queued
+  alias: MQTT Expiry Baseline Queued
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v1/command/baseline_queued
+    qos: 1
+  actions:
+  - event: expiry_lab_stage
+    event_data:
+      case: baseline_queued
+      stage: before_action
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: input_button.press
+    target:
+      entity_id: input_button.expiry_baseline_queued
+  - alias: Fixed per-job service occupancy (controlled surrogate)
+    delay:
+      seconds: 8
+  - event: expiry_lab_stage
+    event_data:
+      case: baseline_queued
+      stage: finished
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_baseline_parallel
+  alias: MQTT Expiry Baseline Parallel
+  mode: parallel
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v1/command/baseline_parallel
+    qos: 1
+  actions:
+  - event: expiry_lab_stage
+    event_data:
+      case: baseline_parallel
+      stage: before_action
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: input_button.press
+    target:
+      entity_id: input_button.expiry_baseline_parallel
+  - alias: Fixed per-job service occupancy (controlled surrogate)
+    delay:
+      seconds: 8
+  - event: expiry_lab_stage
+    event_data:
+      case: baseline_parallel
+      stage: finished
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_admission_queued
+  alias: MQTT Expiry Admission Queued
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v1/command/admission_queued
+    qos: 1
+  actions:
+  - event: expiry_lab_stage
+    event_data:
+      case: admission_queued
+      stage: before_action
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: input_button.press
+    target:
+      entity_id: input_button.expiry_admission_queued
+  - alias: Fixed per-job service occupancy (controlled surrogate)
+    delay:
+      seconds: 8
+  - event: expiry_lab_stage
+    event_data:
+      case: admission_queued
+      stage: finished
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
+  conditions:
+  - condition: template
+    value_template: '{{ (as_timestamp(now()) * 1000) < (trigger.payload_json.expires_at_ms | float(0)) }}'
+- id: mqtt_expiry_execution_queued
+  alias: MQTT Expiry Execution Queued
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v1/command/execution_queued
+    qos: 1
+  actions:
+  - if:
+    - condition: template
+      value_template: '{{ (as_timestamp(now()) * 1000) >= (trigger.payload_json.expires_at_ms | float(0)) }}'
+    then:
+    - event: expiry_lab_stage
+      event_data:
+        case: execution_queued
+        stage: rejected
+        command_id: '{{ trigger.payload_json.id }}'
+        expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+    - stop: Application deadline expired at execution check
+  - event: expiry_lab_stage
+    event_data:
+      case: execution_queued
+      stage: before_action
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: input_button.press
+    target:
+      entity_id: input_button.expiry_execution_queued
+  - alias: Fixed per-job service occupancy (controlled surrogate)
+    delay:
+      seconds: 8
+  - event: expiry_lab_stage
+    event_data:
+      case: execution_queued
+      stage: finished
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100

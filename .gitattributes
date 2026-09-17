@@ -1,0 +1,3 @@
+# Canonical experiment evidence is preserved byte-for-byte.
+evidence/canonical-5rep/*.csv -text
+evidence/canonical-5rep/*.jsonl -text

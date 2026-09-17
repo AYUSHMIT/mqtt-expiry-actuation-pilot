@@ -1,0 +1,53 @@
+C1_idle_short                rep=1 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2998.4609375
+C2_queued_short              rep=1 LATE_VIRTUAL_ACTUATION lateness_ms=4726.77001953125
+C3_queued_long               rep=1 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22271.71875
+C4_parallel_short            rep=1 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2997.986572265625
+C5_admission_short           rep=1 LATE_VIRTUAL_ACTUATION lateness_ms=4727.516845703125
+C6_execution_short           rep=1 REJECTED_AT_EXECUTION_CHECK lateness_ms=None
+C7_execution_long            rep=1 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22275.18310546875
+C1_idle_short                rep=2 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2997.744140625
+C2_queued_short              rep=2 LATE_VIRTUAL_ACTUATION lateness_ms=4726.383544921875
+C3_queued_long               rep=2 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22274.665771484375
+C4_parallel_short            rep=2 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2997.751708984375
+C5_admission_short           rep=2 LATE_VIRTUAL_ACTUATION lateness_ms=4726.158203125
+C6_execution_short           rep=2 REJECTED_AT_EXECUTION_CHECK lateness_ms=None
+C7_execution_long            rep=2 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22269.73681640625
+C1_idle_short                rep=3 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2998.734619140625
+C2_queued_short              rep=3 LATE_VIRTUAL_ACTUATION lateness_ms=4730.914794921875
+C3_queued_long               rep=3 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22270.205322265625
+C4_parallel_short            rep=3 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2996.9345703125
+C5_admission_short           rep=3 LATE_VIRTUAL_ACTUATION lateness_ms=4726.64990234375
+C6_execution_short           rep=3 REJECTED_AT_EXECUTION_CHECK lateness_ms=None
+C7_execution_long            rep=3 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22273.88671875
+C1_idle_short                rep=4 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2998.454345703125
+C2_queued_short              rep=4 LATE_VIRTUAL_ACTUATION lateness_ms=4725.2744140625
+C3_queued_long               rep=4 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22272.764404296875
+C4_parallel_short            rep=4 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2994.78515625
+C5_admission_short           rep=4 LATE_VIRTUAL_ACTUATION lateness_ms=4725.697265625
+C6_execution_short           rep=4 REJECTED_AT_EXECUTION_CHECK lateness_ms=None
+C7_execution_long            rep=4 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22273.686279296875
+C1_idle_short                rep=5 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2995.167724609375
+C2_queued_short              rep=5 LATE_VIRTUAL_ACTUATION lateness_ms=4724.346923828125
+C3_queued_long               rep=5 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22274.109619140625
+C4_parallel_short            rep=5 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-2998.18017578125
+C5_admission_short           rep=5 LATE_VIRTUAL_ACTUATION lateness_ms=4725.237060546875
+C6_execution_short           rep=5 REJECTED_AT_EXECUTION_CHECK lateness_ms=None
+C7_execution_long            rep=5 ON_TIME_VIRTUAL_ACTUATION lateness_ms=-22275.20703125
+{
+  "contract": "MQTT-EXPIRY-1.0",
+  "repetitions": 5,
+  "controls_pass": true,
+  "qualified_baseline_late_count": 5,
+  "counts": {
+    "BROKER_CONTROL_PASS": 5,
+    "ON_TIME_VIRTUAL_ACTUATION": 20,
+    "LATE_VIRTUAL_ACTUATION": 10,
+    "REJECTED_AT_EXECUTION_CHECK": 5
+  },
+  "candidate_trials_valid": true,
+  "stock_reproduction_gate": true,
+  "poster_decision": "NOT_AUTOMATIC: native virtual endpoint and controlled service occupancy; requires a meaningful real-integration result and novelty review.",
+  "mqtt_protocol_violation_claimed": false,
+  "physical_actuation_tested": false
+}
+Evidence directory: /home/ayush/Downloads/mqtt-expiry-pilot-v1/results/20260916T221437Z-b823e3

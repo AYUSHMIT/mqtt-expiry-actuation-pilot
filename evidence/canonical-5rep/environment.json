@@ -1,0 +1,54 @@
+{
+  "contract": "MQTT-EXPIRY-1.0",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.39",
+  "ha_version": "2026.9.2",
+  "docker_compose": "Docker Compose version v5.5.0",
+  "packages": {
+    "paho-mqtt": "2.1.0",
+    "websocket-client": "1.9.0"
+  },
+  "images": {
+    "broker": {
+      "Id": "sha256:93a0bdfcbd9b7a86b36127cb81f54e1afd2019f12f39033458df405a027c03e3",
+      "RepoDigests": [
+        "eclipse-mosquitto@sha256:212f89e1eaeb2c322d6441b64396e3346026674db8fa9c27beac293405c32b3c"
+      ],
+      "Created": "2026-06-22T19:46:25.508064764Z",
+      "Architecture": "amd64",
+      "Os": "linux"
+    },
+    "homeassistant": {
+      "Id": "sha256:0fafae2139c2d143085e56a205d7c5603d20188f9ac2cfa4b8e1da1e57f28145",
+      "RepoDigests": [
+        "ghcr.io/home-assistant/home-assistant@sha256:a1bc133af84ee6505fe2c266d9805b7c75b780dfdc188edfee3b11e8f3cd8efe"
+      ],
+      "Created": "2026-09-11T19:46:43.850311957Z",
+      "Architecture": "amd64",
+      "Os": "linux"
+    }
+  },
+  "file_sha256": {
+    "run.py": "1644769fb5b3739f694a0eba44d4e48153885933a17ceffe8e97cd3bd9a51000",
+    "measurement.py": "14f9f02843ce5b2a68f8516ee750d4a086ecf5c8f125aeabc617cb1934074646",
+    "CONTRACT.md": "6143a17ca09ca79bb870ff4025467475354b24d97807bacb461b09408139deff",
+    "SOURCES.md": "2227f4fe56f645e0092538ee437d1b7c7cfeea030b416e862c032fa97dc43e05",
+    "README.md": "7d28d4ed7d039987fd2c3075226ad39c8551e3e4e6096e196dcf78d122e3a664",
+    "VALIDATION.md": "4d03fc1c64e2613bc1d7c5e9b8de026f9eac55ad39e718eb381bdb9b0bc06291",
+    "compose.yaml": "647487dfd656b3e7eb4d154e259a54ebbc1b5c7c94af4bf112e57d624f1d6897",
+    "requirements.txt": "ccc627f6a127d9dc78371680b8fafd45746be95e0e8d93e1b28362e673aa6edd",
+    "lab.sh": "b9d7311e358ddd33cacc6220bbd48ed1fd498702416db80f06660bd973ed86b3",
+    "ha/configuration.yaml": "289e5347201ac57761cfe4444b9dc7261c4a468207988b74e9dc9c40fe7a5b7c",
+    "ha/packages/expiry_lab.yaml": "4944ad416030ff13cf26ba314b552119f933ae7dd3610f8119a604dbb204ff5d",
+    "mosquitto/mosquitto.conf": "7faebefeeec7150f3bc6fc2625f454194dff47785beb5fdcec50decf80b09c2b"
+  },
+  "broker_version": "mosquitto version 2.0.22",
+  "ha_mqtt_client_id": "62XJ5hApZMovDyUT6EKL8V",
+  "ha_mqtt5_connect_evidence": "broker-1  | 1789594434: New client connected from 172.20.0.3:38247 as 62XJ5hApZMovDyUT6EKL8V (p5, c1, k60).",
+  "ha_experiment_subscription_topics": [
+    "ccnc/expiry/v1/command/baseline_queued",
+    "ccnc/expiry/v1/command/baseline_parallel",
+    "ccnc/expiry/v1/command/admission_queued",
+    "ccnc/expiry/v1/command/execution_queued"
+  ]
+}

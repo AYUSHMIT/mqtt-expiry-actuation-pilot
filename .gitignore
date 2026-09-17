@@ -1,0 +1,19 @@
+.venv/
+.env
+.env.*
+results/
+__pycache__/
+*.pyc
+*.pyo
+
+# Home Assistant runtime/private state
+ha/.storage/
+ha/home-assistant_v2.db*
+ha/*.log
+ha/deps/
+
+# Editor/OS noise
+.vscode/
+.idea/
+.DS_Store
+*~
