@@ -6,6 +6,7 @@ explicit context relationships recorded by the v3 runner.
 from __future__ import annotations
 
 from datetime import datetime
+import math
 from typing import Any
 
 ENDPOINT_ENTITY = 'switch.tapo_p110m'
@@ -66,11 +67,11 @@ def _endpoint_transitions(rows: list[dict[str, Any]], command_id: str,
         old_state = data.get('old_state') or {}
         if new_state.get('state') != target_state:
             continue
-        if target_state == 'off' and old_state.get('state') == target_state:
+        if old_state.get('state') == target_state:
             continue
         if start_ms is not None and _at(event) < start_ms:
             continue
-        if end_ms is not None and _at(event) > end_ms:
+        if end_ms is not None and _at(event) >= end_ms:
             continue
         context_id = new_state.get('context', {}).get('id')
         if allowed_contexts is not None and context_id not in allowed_contexts:
@@ -91,7 +92,7 @@ def _power_transitions(rows: list[dict[str, Any]], command_id: str,
             continue
         if start_ms is not None and _at(event) < start_ms:
             continue
-        if end_ms is not None and _at(event) > end_ms:
+        if end_ms is not None and _at(event) >= end_ms:
             continue
         new_state = data.get('new_state') or {}
         old_state = data.get('old_state') or {}
@@ -99,9 +100,10 @@ def _power_transitions(rows: list[dict[str, Any]], command_id: str,
             continue
         try:
             current = float(new_state.get('state'))
+            previous = float(old_state.get('state'))
         except (TypeError, ValueError):
             continue
-        if current <= threshold:
+        if not (math.isfinite(current) and math.isfinite(previous) and previous <= threshold < current):
             continue
         context_id = new_state.get('context', {}).get('id')
         if allowed_contexts is not None and context_id not in allowed_contexts:
@@ -119,12 +121,12 @@ def _observation_end_ms(rows: list[dict[str, Any]], command_id: str, *, start_ms
         cid = data.get('command_id')
         if cid == command_id:
             candidate_times.append(_at(event))
-        if event.get('event_type') == 'state_changed':
-            entity_id = (event.get('data', {}) or {}).get('entity_id')
-            if entity_id in (ENDPOINT_ENTITY, POWER_SENSOR_ENTITY):
-                candidate_times.append(_at(event))
     if candidate_times:
-        return max(candidate_times) + 2000.0
+        terminal = max(candidate_times)
+        next_starts = [_at(e) for e in ha_events(rows) if e.get('event_type') == 'expiry_v3_stage'
+                       and e.get('data', {}).get('command_id') != command_id
+                       and e.get('data', {}).get('stage') == 'pre_service' and _at(e) > terminal]
+        return min([terminal + 2000.0] + next_starts)
     return start_ms
 
 
@@ -149,54 +151,42 @@ def classify(command: dict[str, Any], rows: list[dict[str, Any]], *,
         reason = rejected[0].get('data', {}).get('reason')
         if reason:
             rejection_reason = reason
-        elif any('trigger' in str(event.get('data', {}).get('policy', '')).lower() for event in rejected):
-            rejection_reason = 'trigger_check'
-        else:
-            rejection_reason = 'execution_check'
     stage_contexts = {
         stage: [event.get('context', {}).get('id') for event in _events(rows, 'expiry_v3_stage', cid, stage) if event.get('context', {}).get('id')]
         for stage in ['trigger_check', 'predictive_decision', 'pre_service', 'rejected', 'on_confirmed', 'off_request', 'off_confirmed', 'finished']
     }
-    allowed_contexts = set().union(*[set(values) for values in stage_contexts.values() if values]) if any(stage_contexts.values()) else set()
-    start_ms = received_at
-    end_ms = _observation_end_ms(rows, cid, start_ms=received_at)
-    all_endpoint_on = [
-        {'at_ms': event['at_ms'], 'context_id': event.get('context_id'), 'entity_id': ENDPOINT_ENTITY}
-        for event in [
-            {'at_ms': _at(evt), 'context_id': (evt.get('data', {}).get('new_state') or {}).get('context', {}).get('id'), 'entity_id': ENDPOINT_ENTITY}
-            for evt in ha_events(rows)
-            if evt.get('event_type') == 'state_changed'
-            and (evt.get('data', {}) or {}).get('entity_id') == ENDPOINT_ENTITY
-            and (evt.get('data', {}).get('new_state') or {}).get('state') == 'on'
-            and (start_ms is None or _at(evt) >= start_ms)
-            and (end_ms is None or _at(evt) <= end_ms)
-        ]
-    ]
-    context_linked_on = [item for item in all_endpoint_on if item.get('context_id') in allowed_contexts]
-    unmatched_endpoint_on = [item for item in all_endpoint_on if item.get('context_id') not in allowed_contexts]
-    all_endpoint_off = [
-        {'at_ms': _at(evt), 'context_id': (evt.get('data', {}).get('new_state') or {}).get('context', {}).get('id'), 'entity_id': ENDPOINT_ENTITY}
-        for evt in ha_events(rows)
-        if evt.get('event_type') == 'state_changed'
-        and (evt.get('data', {}) or {}).get('entity_id') == ENDPOINT_ENTITY
-        and (evt.get('data', {}).get('new_state') or {}).get('state') == 'off'
-        and ((evt.get('data', {}).get('old_state') or {}).get('state') != 'off')
-        and (start_ms is None or _at(evt) >= start_ms)
-        and (end_ms is None or _at(evt) <= end_ms)
-    ]
-    unmatched_endpoint_off = [item for item in all_endpoint_off if item.get('context_id') not in allowed_contexts]
+    start_ms = command.get('observation_start_ms', min(
+        [t for t in (received_at, pre_service_at) if t is not None], default=None))
+    end_ms = command.get('observation_end_ms', _observation_end_ms(rows, cid, start_ms=received_at))
+    # Global exact-context ownership: another known command's transition is not
+    # unmatched for this command. Collisions are ambiguous, never guessed.
+    owners = {}
+    for evt in ha_events(rows):
+        if evt.get('event_type') == 'expiry_v3_stage':
+            ctx = evt.get('context', {}).get('id')
+            owner = evt.get('data', {}).get('command_id')
+            if ctx and owner:
+                owners.setdefault(ctx, set()).add(owner)
+    own_contexts = {ctx for ctx, ids in owners.items() if ids == {cid}}
+    all_endpoint_on = _endpoint_transitions(rows, cid, 'on', start_ms=start_ms, end_ms=end_ms)
+    all_endpoint_off = _endpoint_transitions(rows, cid, 'off', start_ms=start_ms, end_ms=end_ms)
+    # Own transitions are checked globally even if malformed evidence places
+    # them outside the command-local interval.
+    context_linked_on = _endpoint_transitions(rows, cid, 'on', allowed_contexts=own_contexts)
+    context_linked_off = _endpoint_transitions(rows, cid, 'off', allowed_contexts=own_contexts)
+    unmatched_endpoint_on = [t for t in all_endpoint_on if len(owners.get(t['context_id'], set())) != 1]
+    unmatched_endpoint_off = [t for t in all_endpoint_off if len(owners.get(t['context_id'], set())) != 1]
     power_threshold = float(command.get('power_threshold', 0.1))
-    power_effects = _power_transitions(rows, cid, power_threshold, start_ms=start_ms, end_ms=end_ms, allowed_contexts=allowed_contexts)
+    power_effects = _power_transitions(rows, cid, power_threshold, start_ms=start_ms, end_ms=end_ms, allowed_contexts=own_contexts)
+    observed_power_edges = _power_transitions(rows, cid, power_threshold, start_ms=start_ms, end_ms=end_ms)
+    unavailable_power = [e for e in ha_events(rows) if e.get('event_type') == 'state_changed'
+                         and e.get('data', {}).get('entity_id') == POWER_SENSOR_ENTITY
+                         and (e['data'].get('new_state') or {}).get('state') in (None, 'unknown', 'unavailable')
+                         and (start_ms is None or _at(e) >= start_ms) and (end_ms is None or _at(e) < end_ms)]
     independent_effects = []
     if command.get('independent_effect_events'):
         independent_effects = command['independent_effect_events']
-    if pre_service_at is not None:
-        if pre_service_at < deadline:
-            computed_pre_service_lateness = -5000.0
-        else:
-            computed_pre_service_lateness = pre_service_at - deadline
-    else:
-        computed_pre_service_lateness = None
+    computed_pre_service_lateness = pre_service_at - deadline if pre_service_at is not None else None
     result = {
         'command_id': cid,
         'case': case,
@@ -216,8 +206,16 @@ def classify(command: dict[str, Any], rows: list[dict[str, Any]], *,
         'pre_service_lateness_ms': computed_pre_service_lateness,
         'endpoint_on_transition_count': len(context_linked_on),
         'endpoint_on_at_ms': min((item['at_ms'] for item in context_linked_on), default=None),
+        'endpoint_off_transition_count': len(context_linked_off),
+        'endpoint_off_at_ms': min((item['at_ms'] for item in context_linked_off), default=None),
+        'observation_start_ms': start_ms,
+        'observation_end_ms': end_ms,
         'endpoint_state_lateness_ms': (min((item['at_ms'] for item in context_linked_on), default=None) - deadline) if context_linked_on else None,
         'device_power_effect_count': len(power_effects),
+        'device_power_unattributed_rising_edges': len(observed_power_edges) - len(power_effects),
+        'device_power_unavailable_count': len(unavailable_power),
+        'device_power_observation_status': ('CONTEXT_LINKED_RISING_EDGE' if power_effects else
+                                            'UNAVAILABLE' if unavailable_power else 'NO_ATTRIBUTABLE_RISING_EDGE'),
         'device_power_on_at_ms': min((item['at_ms'] for item in power_effects), default=None),
         'device_power_lateness_ms': (min((item['at_ms'] for item in power_effects), default=None) - deadline) if power_effects else None,
         'independent_effect_count': len(independent_effects),
@@ -233,31 +231,49 @@ def classify(command: dict[str, Any], rows: list[dict[str, Any]], *,
         for event in predictive:
             accepted_value = event.get('data', {}).get('accepted')
             if accepted_value is not None:
-                accepted = bool(accepted_value)
+                accepted = accepted_value if type(accepted_value) is bool else None
         result['predictive_accepted'] = accepted
 
     if not receipts:
         outcome = 'INVALID_NO_HA_RECEIPT'
+    elif len(receipts) != 1:
+        outcome = 'UNRESOLVED_DUPLICATE_RECEIPT'
+    elif not math.isfinite(deadline):
+        outcome = 'INVALID_DEADLINE'
     elif received_at + clock_bound_ms >= deadline:
         outcome = 'INVALID_RECEIPT_NOT_PROVEN_BEFORE_DEADLINE'
     elif len(pre_services) > 1:
         outcome = 'DUPLICATE_PRE_SERVICE'
     elif len(context_linked_on) > 1:
         outcome = 'DUPLICATE_ENDPOINT_ON'
+    elif len(predictive) > 1:
+        outcome = 'INVALID_DUPLICATE_PREDICTIVE_DECISION'
     elif rejected and pre_services and len(context_linked_on) == 0 and len(unmatched_endpoint_on) == 0:
         outcome = 'INVALID_REJECT_AND_PRE_SERVICE'
     elif rejected and (len(unmatched_endpoint_on) > 0 or len(context_linked_on) > 0):
         outcome = 'UNRESOLVED_UNEXPLAINED_ON_TRANSITION'
     elif rejected and pre_services == []:
         reason = (rejected[0].get('data', {}) or {}).get('reason')
-        if reason and 'trigger' in reason:
+        physical = [e for e in _events(rows, 'expiry_v3_stage', cid)
+                    if e.get('data', {}).get('stage') in ('predictive_handoff', 'on_confirmed', 'off_request', 'off_confirmed', 'finished')]
+        if policy == 'physical_v3_predictive_admission':
+            physical += trigger_checks  # Legacy in-worker P2 check is queue evidence.
+        if len(rejected) != 1 or unmatched_endpoint_off or context_linked_off or physical:
+            outcome = 'INVALID_REJECTION_EVIDENCE'
+        elif reason == 'trigger_check' and policy == 'physical_v3_trigger_check':
             outcome = 'REJECTED_TRIGGER_CHECK'
-        elif reason and 'predictive' in reason:
-            outcome = 'REJECTED_PREDICTIVE_ADMISSION'
-        elif reason and 'execution' in reason:
+        elif reason == 'predictive_admission' and policy == 'physical_v3_predictive_admission':
+            outcome = ('REJECTED_PREDICTIVE_ADMISSION' if len(predictive) == 1
+                       and result['predictive_accepted'] is False and predictive_at <= _at(rejected[0])
+                       else 'INVALID_PREDICTIVE_DECISION')
+        elif reason == 'execution_check' and policy == 'physical_v3_execution_check':
             outcome = 'REJECTED_EXECUTION_CHECK'
         else:
-            outcome = 'REJECTED_EXECUTION_CHECK'
+            outcome = 'INVALID_REJECTION_REASON'
+    elif policy == 'physical_v3_predictive_admission' and (len(predictive) != 1
+            or result['predictive_accepted'] is not True or pre_service_at is None
+            or predictive_at >= pre_service_at):
+        outcome = 'INVALID_PREDICTIVE_DECISION'
     elif not pre_services and not rejected and (len(context_linked_on) == 0) and (len(unmatched_endpoint_on) > 0 or len(all_endpoint_on) > 0):
         outcome = 'UNRESOLVED_UNEXPLAINED_ON_TRANSITION'
     elif not pre_services and not rejected:
@@ -268,11 +284,13 @@ def classify(command: dict[str, Any], rows: list[dict[str, Any]], *,
         outcome = 'UNRESOLVED_ENDPOINT_ATTRIBUTION'
     elif pre_service_at is not None and len(context_linked_on) == 0:
         outcome = 'UNRESOLVED_ENDPOINT_ATTRIBUTION'
+    elif unmatched_endpoint_off:
+        outcome = 'UNRESOLVED_UNEXPLAINED_ENDPOINT_ACTIVITY'
     elif pre_service_at is not None and pre_service_at > deadline + request_margin_ms:
         outcome = 'LATE_PRE_SERVICE'
     elif pre_service_at is not None and pre_service_at < deadline - request_margin_ms:
         outcome = 'ON_TIME_PRE_SERVICE'
     else:
-        outcome = 'ON_TIME_PRE_SERVICE' if pre_service_at is not None else 'UNRESOLVED_ENDPOINT_ATTRIBUTION'
+        outcome = 'BOUNDARY_EXCLUDE_FROM_HEADLINE' if pre_service_at is not None else 'UNRESOLVED_ENDPOINT_ATTRIBUTION'
     result['outcome'] = outcome
     return result

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v3 candidate scaffolds and an explicitly invoked REST characterization mode.
+"""Frozen Stage-1 runner and explicitly invoked REST characterization mode.
 
 Live characterization requires review, explicit approval, and a benign load.
 """
@@ -46,7 +46,7 @@ def validate_candidate_endpoint_state(endpoint_state: str | None, *, phase: str)
     if endpoint_state is None:
         raise ValueError(f'candidate {phase}: endpoint state unavailable')
     normalized = str(endpoint_state).strip().lower()
-    if normalized in {'on', 'unavailable', 'unknown', 'none'}:
+    if normalized != 'off':
         raise ValueError(f'candidate {phase}: endpoint state {endpoint_state!r} is not permitted')
 
 
@@ -73,18 +73,15 @@ def _read_json_file(path: Path) -> list[dict]:
 
 
 def boundary_mode(*, repetitions: int) -> dict:
-    """Boundary-study scaffold only. No live execution is permitted in this task."""
-    return {'mode': 'boundary', 'repetitions': repetitions, 'queue_depths': QUEUE_DEPTHS,
-            'ttl_grid_s': TTL_GRID_S, 'policy': 'physical_v3_broker_only',
-            'p0_only': True}
+    """Live Stage-1 P0 sweep; never run without separate explicit approval."""
+    from boundary_v3 import run_boundary
+    return run_boundary(repetitions)
 
 
 def policy_mode(*, cells_path: Path, repetitions: int) -> dict:
-    """Policy study scaffold only. The cells are read from JSON and frozen before execution."""
-    cells = _read_json_file(cells_path)
-    return {'mode': 'policy', 'repetitions': repetitions, 'cells': cells,
-            'policies': ['physical_v3_broker_only', 'physical_v3_trigger_check',
-                        'physical_v3_predictive_admission', 'physical_v3_execution_check']}
+    """Stage 2 is intentionally unavailable, not a successful dry/live run."""
+    return {'mode': 'policy', 'ready': False, 'candidate_experiment': False,
+            'error': 'Stage-2 policy execution is disabled pending a separate reviewed implementation.'}
 
 
 def characterize_power_mode(*, samples: int, settle_before_s: float = 3,
@@ -98,8 +95,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest='command', required=True)
 
-    boundary = subparsers.add_parser('boundary', help='Frozen boundary study scaffold')
-    boundary.add_argument('--repetitions', type=int, default=5)
+    boundary = subparsers.add_parser('boundary', help='Live frozen Stage-1 P0 study; requires separate approval')
+    boundary.add_argument('--repetitions', type=int, default=5, choices=[5])
 
     policy = subparsers.add_parser('policy', help='Frozen policy study scaffold')
     policy.add_argument('--cells', type=Path, required=True)
@@ -126,7 +123,11 @@ def main() -> int:
         raise ValueError(f'Unsupported command: {args.command}')
 
     print(json.dumps(result, indent=2))
-    return 2 if args.command == 'characterize-power' and not result['all_samples_valid'] else 0
+    if args.command == 'policy':
+        return 2
+    if args.command == 'boundary':
+        return 0 if result['all_trials_valid'] else 2
+    return 0 if result['all_samples_valid'] else 2
 
 
 if __name__ == '__main__':

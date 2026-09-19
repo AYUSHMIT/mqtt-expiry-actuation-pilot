@@ -7,7 +7,7 @@ This file documents the hardened v3 classification and runner pattern without ex
 ## Architecture
 
 - v2 remains canonical history
-- v3 adds a read-only classifier and a queued candidate-study scaffold
+- v3 adds a read-only classifier and a live-capable, separately invoked Stage-1 P0 runner
 - candidate execution is explicitly deferred until the design freeze is reviewed and validated
 
 ## Hardening intent
@@ -61,8 +61,8 @@ The power characterization path is separate and is not a candidate mode or a wor
 
 `run_v3.characterize_power_mode()` now delegates to `power_characterization.py`.
 This path uses standard-library REST calls directly to the one configured switch;
-it never imports a candidate classifier or MQTT publisher. Boundary and policy
-modes remain scaffolds and all frozen constants are unchanged. Live use still
+it never imports a candidate classifier or MQTT publisher. Policy mode remains
+disabled; boundary mode now has a live-capable implementation. All frozen constants are unchanged. Live use still
 requires review, explicit user approval, exclusive endpoint control, and a benign
 low-risk load verified by the operator. No live mode is invoked during coding.
 
@@ -103,3 +103,55 @@ disabled, busy or uninspectable v3 automations. Poll-time failures, unexpected
 observed transitions, automation activity, transport failures and missing edge
 observations stop after the first invalid sample. No silent repair or continuation
 occurs. Tests mock REST, shell, and time; no hardware is accessed.
+
+## Candidate semantic repairs under review
+
+Working-tree changes based on `a807112d4764196e073e99320fa232a84559f1db`, with no
+candidate outcomes and no commit created by this task:
+
+- Lateness is `pre_service_at_ms - expires_at_ms`, including negative values;
+  missing pre-service remains null. Inclusive +/-1000 ms values remain boundary.
+- P2 admission uses a parallel external-topic gate and a separate queued
+  internal-topic worker. The frozen decision is emitted before the rejection
+  stop or accepted handoff. Original payload bytes represented by trigger.payload
+  preserve IDs and admission inputs; no message expiry is applied internally.
+  HA 2026.9.2's MQTT publish validation preserves a rendered template's string
+  representation. No HACS/custom integration/python_script/shell_command is used.
+- A P2 rejection needs one false Boolean decision, the exact rejection reason,
+  and no handoff, physical markers, own transitions or unexplained ON activity.
+  Accepted execution needs a unique true Boolean decision before its same-ID
+  pre_service. Unknown rejection reasons never become execution rejections.
+- V3 transition accounting excludes attribute-only ON updates, bounds observation
+  to the command's own stages/runner interval, and recognizes other commands'
+  exact stage-context ownership. Power requires an actual finite rising crossing;
+  unavailable and unattributed telemetry are reported without independent claims.
+- `boundary_v3.py` implements only the frozen 75-target P0 grid. Deterministic
+  IDs encode run/rep/q/TTL/role; 60-second blockers establish real occupancy.
+  Readiness requires blocker receipts, on_confirmed, worker current counts and
+  no premature next-worker stage. Retrospective stage/ON/OFF ordering proves
+  the requested topology and catches races during target publication.
+- Preflight requires OFF/idle state, all six loaded automations with expected
+  modes, exact HA/Mosquitto versions, HA MQTT-5 subscription evidence, image
+  digests and clock calibration. Every wait checks observer health, endpoint
+  availability and other-worker activity. Each cell validates all endpoint
+  transitions and observes an isolated 250 ms terminal tail before advancing.
+  Missing/duplicate/ambiguous evidence aborts without retry or corrective OFF.
+- `policy` is explicitly disabled and exits 2. It cannot masquerade as a ready
+  Stage-2 run. No live mode is called during implementation or tests.
+
+Boundary outputs: `results-v3-boundary/<UTC>-<id>/environment.json`, `events.jsonl`,
+`trials.csv`, `summary.json`, and `INVALID.txt` on failure. Environment records
+branch/SHA, source and unchanged-plan hashes, versions, images and clock evidence.
+The CSV contains all 17 required analyzer columns without renaming, plus blocker
+IDs, publication time, actual_queue_depth, topology_valid, valid, OFF evidence,
+power-observation status, clock/drift evidence and invalid_reason when applicable.
+Invalid partial rows remain in the CSV; failed runs never automatically rerun.
+Summary sets candidate_experiment/configuration_bound_result true and MQTT
+violation/HA vulnerability/independent-effect claims false; no poster decision.
+
+The analyzer/optical plan and observer implementation are unchanged. Simulated
+q=0/1/2 output passes the existing analyzer. This is software validation, not
+evidence that the live integration, clock assumptions, or empirical service
+predictor have been validated on hardware. Deployment/reload, live review and
+explicit approval remain separate; the optical channel is not silently joined
+to candidate events or used to infer current flow.

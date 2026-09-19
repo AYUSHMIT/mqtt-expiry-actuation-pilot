@@ -17,6 +17,7 @@ automation:
       ttl_s: '{{ trigger.payload_json.ttl_s }}'
       expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
       policy: '{{ trigger.payload_json.policy }}'
+      role: '{{ trigger.payload_json.role }}'
       qos: '{{ trigger.qos }}'
   trace:
     stored_traces: 100
@@ -158,24 +159,41 @@ automation:
   trace:
     stored_traces: 100
 - id: mqtt_expiry_v3_physical_v3_predictive_admission
-  alias: MQTT Expiry V3 Predictive Admission
-  mode: queued
-  max: 10
+  alias: MQTT Expiry V3 Predictive Pre-Queue Admission
+  mode: parallel
+  max: 100
   triggers:
   - trigger: mqtt
     topic: ccnc/expiry/v3/command/physical_v3_predictive_admission
     qos: 1
   actions:
+  - variables:
+      decision_at_ms: '{{ as_timestamp(now()) * 1000 }}'
+      predicted_wait_bound_ms: '{{ trigger.payload_json.predicted_wait_bound_ms | float(-1) }}'
+  - variables:
+      admission_accepted: >-
+        {{ trigger.payload_json.queue_depth_ahead is integer
+           and trigger.payload_json.queue_depth_ahead in [0, 1, 2]
+           and trigger.payload_json.per_job_service_bound_ms | float(-1) == 8000
+           and trigger.payload_json.dispatch_margin_ms | float(-1) == 500
+           and predicted_wait_bound_ms == (trigger.payload_json.queue_depth_ahead | int(-1)) * 8000 + 500
+           and decision_at_ms + predicted_wait_bound_ms < (trigger.payload_json.expires_at_ms | float(0)) }}
   - event: expiry_v3_stage
     event_data:
       command_id: '{{ trigger.payload_json.command_id }}'
       case: physical_v3_predictive_admission
       policy: physical_v3_predictive_admission
-      stage: trigger_check
+      stage: predictive_decision
+      accepted: '{{ admission_accepted }}'
+      predicted_wait_bound_ms: '{{ predicted_wait_bound_ms }}'
+      queue_depth_ahead: '{{ trigger.payload_json.queue_depth_ahead }}'
+      per_job_service_bound_ms: '{{ trigger.payload_json.per_job_service_bound_ms }}'
+      dispatch_margin_ms: '{{ trigger.payload_json.dispatch_margin_ms }}'
+      decision_at_ms: '{{ decision_at_ms }}'
       expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
   - if:
     - condition: template
-      value_template: '{{ (as_timestamp(now()) * 1000) + (trigger.payload_json.predicted_wait_bound_ms | float(0)) >= (trigger.payload_json.expires_at_ms | float(0)) }}'
+      value_template: '{{ not admission_accepted }}'
     then:
     - event: expiry_v3_stage
       event_data:
@@ -185,20 +203,30 @@ automation:
         stage: rejected
         reason: predictive_admission
         expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
-    - stop: stale work rejected at predictive admission
+    - stop: rejected before physical queue handoff
   - event: expiry_v3_stage
     event_data:
       command_id: '{{ trigger.payload_json.command_id }}'
-      case: physical_v3_predictive_admission
       policy: physical_v3_predictive_admission
-      stage: predictive_decision
-      accepted: true
-      predicted_wait_bound_ms: '{{ trigger.payload_json.predicted_wait_bound_ms }}'
-      queue_depth_ahead: '{{ trigger.payload_json.queue_depth_ahead }}'
-      per_job_service_bound_ms: '{{ trigger.payload_json.per_job_service_bound_ms }}'
-      dispatch_margin_ms: '{{ trigger.payload_json.dispatch_margin_ms }}'
-      decision_at_ms: '{{ as_timestamp(now()) * 1000 }}'
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      stage: predictive_handoff
+      decision_at_ms: '{{ decision_at_ms }}'
+  - action: mqtt.publish
+    data:
+      topic: ccnc/expiry/v3/internal/predictive_accepted
+      payload: '{{ trigger.payload }}'
+      qos: 1
+      retain: false
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_v3_predictive_physical_worker
+  alias: MQTT Expiry V3 Predictive Accepted Physical Worker
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v3/internal/predictive_accepted
+    qos: 1
+  actions:
   - event: expiry_v3_stage
     event_data:
       command_id: '{{ trigger.payload_json.command_id }}'

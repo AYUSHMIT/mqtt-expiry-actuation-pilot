@@ -30,7 +30,7 @@ THRESHOLD_LABEL = 'PROVISIONAL_DEVICE_REPORTED_POWER_THRESHOLD'
 POLL_INTERVAL_MS = 100
 OBSERVATION_TIMEOUT_S = 10
 HTTP_TIMEOUT_S = 5
-AUTOMATION_IDS = ('mqtt_expiry_v3_ingress_probe',) + tuple(
+AUTOMATION_IDS = ('mqtt_expiry_v3_ingress_probe', 'mqtt_expiry_v3_predictive_physical_worker') + tuple(
     'mqtt_expiry_v3_physical_v3_' + name for name in
     ('broker_only', 'trigger_check', 'predictive_admission', 'execution_check'))
 SAMPLE_FIELDS = ['sample', 'pre_service_on_at_ms', 'ha_state_on_at_ms', 'device_power_on_at_ms',

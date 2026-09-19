@@ -32,12 +32,10 @@ Required measurements are deliberately separated:
 
 ## Exact pre-service deadline contract
 
-A command is admitted only if:
-
-- it was received before the application deadline
-- the trigger check executes before the deadline
-- predictive admission is accepted before service begins
-- execution check rejects stale work immediately before endpoint actuation
+A valid target measurement requires receipt before the application deadline with
+the frozen clock bound. The policies deliberately enforce different checks: P0
+has none, P1 checks at trigger time, P2 checks predicted wait before queue entry,
+and P3 rechecks at the execution boundary. They do not all perform every check.
 
 A pre-service marker is valid only for the same command ID and the same causal context. A command is not considered clean merely because a rejection exists without an attributable pre-service event and without zero attributable ON transitions.
 
@@ -51,6 +49,11 @@ A pre-service marker is valid only for the same command ID and the same causal c
 - INITIAL_REPETITIONS = 5
 - exact queue-depth definition: q equals the number of earlier commands in the same serialized queue ahead of the candidate, counted before candidate admission
 - each candidate command is measured as a frozen boundary condition, never modified after seeing outcomes
+- the live runner uses P0 only and exactly 75 targets in rep/q/TTL order; the preregistered grid is unchanged
+- q=0 requires an idle worker and OFF endpoint; q=1/2 publish the target during blocker 1's confirmed ON hold, and q=2 additionally requires blocker 2's receipt plus observed worker current=2 with no blocker-2 pre_service yet
+- the runner waits a fixed 275 ms after the last blocker readiness check (250 ms clock bound plus 25 ms polling separation), then checks topology immediately before publishing; no additional outcome-dependent lead time is introduced
+- completed stage order must independently prove blocker 1, blocker 2 if present, then target; actual q is not inferred from payload alone
+- q counts earlier complete transaction jobs, including the active job with partially elapsed ON hold; it does not imply q full remaining pulse durations. Raw active-phase/publication timestamps preserve the residual-service distinction
 
 ### Stage 2 frozen-cell policy study
 
@@ -76,6 +79,11 @@ P2: predictive-admission policy
 - compute predicted_wait_bound_ms = q * PER_JOB_SERVICE_BOUND_MS + DISPATCH_MARGIN_MS
 - accept only if the current time plus predicted_wait_bound_ms is strictly before expires_at_ms
 - equality remains rejected
+- a separate parallel admission automation evaluates and emits predictive_decision for accept and reject before physical queue entry
+- rejected work emits rejected(reason=predictive_admission) and stops before any handoff
+- accepted work forwards the original payload, including command_id and prediction metadata, using stock mqtt.publish to ccnc/expiry/v3/internal/predictive_accepted (QoS 1, retain false, no message expiry)
+- this is an application-internal handoff, not a new external candidate publication; the distinct queued physical worker consumes only that topic and never recomputes admission
+- admission and worker contexts differ; command_id links the decision, while the worker's own stage context links endpoint transitions. Internal-topic access must remain exclusive to the admission gate during reviewed operation
 
 P3: execution-check policy
 - reject stale work immediately before ON request if the deadline has already passed
@@ -93,6 +101,9 @@ P3: execution-check policy
 - CLOCK_BOUND_MS = 250
 
 These constants are frozen before candidate execution and must not be silently changed after observing outcomes.
+The 8000 ms service predictor is an empirical conservative estimate, not a
+certified worst-case bound. Lateness is exact timestamp subtraction; the inclusive
+[-1000,+1000] ms interval is BOUNDARY_EXCLUDE_FROM_HEADLINE, not on-time success.
 
 ## No silent repair rule
 
@@ -110,6 +121,12 @@ Allowed invalid/unresolved classifications:
 - INVALID_REJECT_AND_PRE_SERVICE
 - UNRESOLVED_UNEXPLAINED_ON_TRANSITION
 - UNRESOLVED_ENDPOINT_ATTRIBUTION
+- INVALID_PREDICTIVE_DECISION
+- INVALID_DUPLICATE_PREDICTIVE_DECISION
+- INVALID_REJECTION_REASON
+- INVALID_REJECTION_EVIDENCE
+- INVALID_RUN_EVIDENCE
+- BOUNDARY_EXCLUDE_FROM_HEADLINE
 - LATE_PRE_SERVICE
 - ON_TIME_PRE_SERVICE
 
@@ -165,7 +182,7 @@ No nearest-timestamp attribution or independent current-flow claim is made.
 
 Preflight requires HA_TOKEN, exact HA 2026.9.2 and Mosquitto 2.0.22, running images
 with recorded digests, available switch and power sensor, finite nonnegative W
-readings, endpoint already OFF, power at or below threshold, and all five v3
+readings, endpoint already OFF, power at or below threshold, and all six v3
 automations enabled and idle. Git branch/SHA and available device/integration
 metadata are recorded. Loaded older experiment automations must also be idle.
 Automation activity is checked throughout observation.
