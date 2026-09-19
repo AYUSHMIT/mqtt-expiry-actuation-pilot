@@ -1,0 +1,218 @@
+# Stock Home Assistant YAML only. The endpoint is a physical switch state,
+# not independent current-flow evidence.
+automation:
+- id: mqtt_expiry_v2_ingress_probe
+  alias: MQTT Expiry V2 Ingress Probe
+  mode: parallel
+  max: 100
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v2/command/+
+    qos: 1
+  actions:
+  - event: expiry_v2_received
+    event_data:
+      command_id: '{{ trigger.payload_json.id }}'
+      case: '{{ trigger.topic.split(''/'')[-1] }}'
+      issued_at_ms: '{{ trigger.payload_json.issued_at_ms }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      qos: '{{ trigger.qos }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_v2_physical_baseline_queued
+  alias: MQTT Expiry V2 Physical Baseline Queued
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v2/command/physical_baseline_queued
+    qos: 1
+  actions:
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_baseline_queued
+      stage: before_action
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_baseline_queued
+      stage: on_request
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_on
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_baseline_queued
+      stage: on_confirmed
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - delay:
+      seconds: 5
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_baseline_queued
+      stage: off_request
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_off
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_baseline_queued
+      stage: off_confirmed
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_baseline_queued
+      stage: finished
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_v2_physical_admission_queued
+  alias: MQTT Expiry V2 Physical Admission Queued
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v2/command/physical_admission_queued
+    qos: 1
+  conditions:
+  - condition: template
+    value_template: '{{ (as_timestamp(now()) * 1000) < (trigger.payload_json.expires_at_ms | float(0)) }}'
+  actions:
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_admission_queued
+      stage: before_action
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_admission_queued
+      stage: on_request
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_on
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_admission_queued
+      stage: on_confirmed
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - delay:
+      seconds: 5
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_admission_queued
+      stage: off_request
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_off
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_admission_queued
+      stage: off_confirmed
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_admission_queued
+      stage: finished
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_v2_physical_execution_queued
+  alias: MQTT Expiry V2 Physical Execution Queued
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v2/command/physical_execution_queued
+    qos: 1
+  actions:
+  - if:
+    - condition: template
+      value_template: '{{ (as_timestamp(now()) * 1000) >= (trigger.payload_json.expires_at_ms | float(0)) }}'
+    then:
+    - event: expiry_v2_stage
+      event_data:
+        case: physical_execution_queued
+        stage: rejected
+        command_id: '{{ trigger.payload_json.id }}'
+        expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+    - stop: Application deadline expired at execution check
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_execution_queued
+      stage: before_action
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_execution_queued
+      stage: on_request
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_on
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_execution_queued
+      stage: on_confirmed
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - delay:
+      seconds: 5
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_execution_queued
+      stage: off_request
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_off
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_execution_queued
+      stage: off_confirmed
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v2_stage
+    event_data:
+      case: physical_execution_queued
+      stage: finished
+      command_id: '{{ trigger.payload_json.id }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
