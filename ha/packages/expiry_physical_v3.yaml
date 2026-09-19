@@ -1,0 +1,332 @@
+# Hardened v3 physical endpoint design. No custom integration, no custom Python, no shell actions.
+automation:
+- id: mqtt_expiry_v3_ingress_probe
+  alias: MQTT Expiry V3 Ingress Probe
+  mode: parallel
+  max: 100
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v3/command/+
+    qos: 1
+  actions:
+  - event: expiry_v3_received
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: '{{ trigger.topic.split(''/'')[-1] }}'
+      queue_depth: '{{ trigger.payload_json.queue_depth }}'
+      ttl_s: '{{ trigger.payload_json.ttl_s }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      policy: '{{ trigger.payload_json.policy }}'
+      qos: '{{ trigger.qos }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_v3_physical_v3_broker_only
+  alias: MQTT Expiry V3 Broker Only
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v3/command/physical_v3_broker_only
+    qos: 1
+  actions:
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_broker_only
+      policy: physical_v3_broker_only
+      stage: trigger_check
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_broker_only
+      policy: physical_v3_broker_only
+      stage: pre_service
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_on
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_broker_only
+      policy: physical_v3_broker_only
+      stage: on_confirmed
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - delay:
+      seconds: 5
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_broker_only
+      policy: physical_v3_broker_only
+      stage: off_request
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_off
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_broker_only
+      policy: physical_v3_broker_only
+      stage: off_confirmed
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_broker_only
+      policy: physical_v3_broker_only
+      stage: finished
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_v3_physical_v3_trigger_check
+  alias: MQTT Expiry V3 Trigger Check
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v3/command/physical_v3_trigger_check
+    qos: 1
+  conditions:
+  - condition: template
+    value_template: '{{ (as_timestamp(now()) * 1000) < (trigger.payload_json.expires_at_ms | float(0)) }}'
+  actions:
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_trigger_check
+      policy: physical_v3_trigger_check
+      stage: trigger_check
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_trigger_check
+      policy: physical_v3_trigger_check
+      stage: pre_service
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_on
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_trigger_check
+      policy: physical_v3_trigger_check
+      stage: on_confirmed
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - delay:
+      seconds: 5
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_trigger_check
+      policy: physical_v3_trigger_check
+      stage: off_request
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_off
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_trigger_check
+      policy: physical_v3_trigger_check
+      stage: off_confirmed
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_trigger_check
+      policy: physical_v3_trigger_check
+      stage: finished
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_v3_physical_v3_predictive_admission
+  alias: MQTT Expiry V3 Predictive Admission
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v3/command/physical_v3_predictive_admission
+    qos: 1
+  actions:
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_predictive_admission
+      policy: physical_v3_predictive_admission
+      stage: trigger_check
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - if:
+    - condition: template
+      value_template: '{{ (as_timestamp(now()) * 1000) + (trigger.payload_json.predicted_wait_bound_ms | float(0)) >= (trigger.payload_json.expires_at_ms | float(0)) }}'
+    then:
+    - event: expiry_v3_stage
+      event_data:
+        command_id: '{{ trigger.payload_json.command_id }}'
+        case: physical_v3_predictive_admission
+        policy: physical_v3_predictive_admission
+        stage: rejected
+        reason: predictive_admission
+        expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+    - stop: stale work rejected at predictive admission
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_predictive_admission
+      policy: physical_v3_predictive_admission
+      stage: predictive_decision
+      accepted: true
+      predicted_wait_bound_ms: '{{ trigger.payload_json.predicted_wait_bound_ms }}'
+      queue_depth_ahead: '{{ trigger.payload_json.queue_depth_ahead }}'
+      per_job_service_bound_ms: '{{ trigger.payload_json.per_job_service_bound_ms }}'
+      dispatch_margin_ms: '{{ trigger.payload_json.dispatch_margin_ms }}'
+      decision_at_ms: '{{ as_timestamp(now()) * 1000 }}'
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_predictive_admission
+      policy: physical_v3_predictive_admission
+      stage: pre_service
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_on
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_predictive_admission
+      policy: physical_v3_predictive_admission
+      stage: on_confirmed
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - delay:
+      seconds: 5
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_predictive_admission
+      policy: physical_v3_predictive_admission
+      stage: off_request
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_off
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_predictive_admission
+      policy: physical_v3_predictive_admission
+      stage: off_confirmed
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_predictive_admission
+      policy: physical_v3_predictive_admission
+      stage: finished
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100
+- id: mqtt_expiry_v3_physical_v3_execution_check
+  alias: MQTT Expiry V3 Execution Check
+  mode: queued
+  max: 10
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v3/command/physical_v3_execution_check
+    qos: 1
+  actions:
+  - if:
+    - condition: template
+      value_template: '{{ (as_timestamp(now()) * 1000) >= (trigger.payload_json.expires_at_ms | float(0)) }}'
+    then:
+    - event: expiry_v3_stage
+      event_data:
+        command_id: '{{ trigger.payload_json.command_id }}'
+        case: physical_v3_execution_check
+        policy: physical_v3_execution_check
+        stage: rejected
+        reason: execution_check
+        expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+    - stop: application deadline expired immediately before service
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_execution_check
+      policy: physical_v3_execution_check
+      stage: trigger_check
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_execution_check
+      policy: physical_v3_execution_check
+      stage: pre_service
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_on
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_execution_check
+      policy: physical_v3_execution_check
+      stage: on_confirmed
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - delay:
+      seconds: 5
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_execution_check
+      policy: physical_v3_execution_check
+      stage: off_request
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - action: switch.turn_off
+    target:
+      entity_id: switch.tapo_p110m
+  - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
+    timeout: '00:00:05'
+    continue_on_timeout: false
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_execution_check
+      policy: physical_v3_execution_check
+      stage: off_confirmed
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_execution_check
+      policy: physical_v3_execution_check
+      stage: finished
+      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+  trace:
+    stored_traces: 100

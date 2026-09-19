@@ -1,0 +1,38 @@
+{
+  "target_commands": 30,
+  "blocker_commands": 25,
+  "broker_controls": 5,
+  "unknown_endpoint_commands": [],
+  "trial_started_events": 30,
+  "target_counts_by_status": {
+    "CONSISTENT_WITH_HISTORICAL_LABEL": 30,
+    "HISTORICAL_LABEL_NOT_INDEPENDENTLY_PROVABLE": 0,
+    "UNRESOLVED": 0,
+    "CONTRADICTED": 0
+  },
+  "endpoint_on_total": 50,
+  "endpoint_on_owned": 50,
+  "endpoint_on_unowned": 0,
+  "endpoint_off_total": 50,
+  "endpoint_off_owned": 50,
+  "endpoint_off_unowned": 0,
+  "rejected_targets_with_unowned_on": [],
+  "positive_targets_missing_off": [],
+  "unresolved_target_ids": [],
+  "canonical_topology_matches_expected": true,
+  "targets_by_test": {
+    "C1_physical_idle_short": 5,
+    "C2_physical_queued_short": 5,
+    "C3_physical_queued_long": 5,
+    "C5_physical_admission_short": 5,
+    "C6_physical_execution_short": 5,
+    "C7_physical_execution_long": 5
+  },
+  "blockers_by_test": {
+    "C2_physical_queued_short": 5,
+    "C3_physical_queued_long": 5,
+    "C5_physical_admission_short": 5,
+    "C6_physical_execution_short": 5,
+    "C7_physical_execution_long": 5
+  }
+}

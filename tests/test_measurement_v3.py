@@ -1,0 +1,169 @@
+import unittest
+from datetime import datetime, timezone
+from pathlib import Path
+import sys
+import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from measurement_v3 import classify
+
+
+def iso(ms):
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat()
+
+
+def event(event_type, data, at, context='ctx'):
+    return {'kind': 'ha_event', 'event': {'event_type': event_type, 'data': data,
+            'time_fired': iso(at), 'context': {'id': context}}}
+
+
+def fixture(**overrides):
+    command = {
+        'command_id': 'V3-FIXTURE',
+        'case': 'physical_v3_trigger_check',
+        'policy': 'physical_v3_trigger_check',
+        'queue_depth': 1,
+        'ttl_s': 6,
+        'expires_at_ms': 20000,
+        'issued_at_ms': 10000,
+        'received_at_ms': 10500,
+    }
+    command.update(overrides)
+    rows = [
+        event('expiry_v3_received', {'command_id': command['command_id'], 'case': command['case']}, command['received_at_ms']),
+        event('expiry_v3_stage', {'command_id': command['command_id'], 'stage': 'trigger_check', 'policy': command['policy']}, 11000, 'ctx'),
+        event('expiry_v3_stage', {'command_id': command['command_id'], 'stage': 'pre_service', 'policy': command['policy']}, 11500, 'ctx'),
+        event('state_changed', {'entity_id': 'switch.tapo_p110m', 'old_state': {'state': 'off'}, 'new_state': {'state': 'on', 'context': {'id': 'ctx'}}}, 11800, 'ctx')
+    ]
+    return command, rows
+
+
+class MeasurementV3Tests(unittest.TestCase):
+    def test_pre_service_alone_is_not_endpoint_transition(self):
+        command, rows = fixture()
+        rows = [rows[0], rows[1], rows[2]]
+        result = classify(command, rows)
+        self.assertEqual(result['pre_service_count'], 1)
+        self.assertEqual(result['endpoint_on_transition_count'], 0)
+        self.assertEqual(result['outcome'], 'UNRESOLVED_ENDPOINT_ATTRIBUTION')
+
+    def test_context_linked_endpoint_on_counts(self):
+        command, rows = fixture()
+        result = classify(command, rows)
+        self.assertEqual(result['endpoint_on_transition_count'], 1)
+        self.assertEqual(result['endpoint_on_at_ms'], 11800)
+
+    def test_wrong_context_is_not_guessed(self):
+        command, rows = fixture()
+        rows[-1]['event']['data']['new_state']['context']['id'] = 'other'
+        result = classify(command, rows)
+        self.assertEqual(result['endpoint_on_transition_count'], 0)
+        self.assertEqual(result['outcome'], 'UNRESOLVED_ENDPOINT_ATTRIBUTION')
+
+    def test_unmatched_on_in_observation_interval_is_unresolved(self):
+        command, rows = fixture()
+        rows.append(event('state_changed', {'entity_id': 'switch.tapo_p110m', 'old_state': {'state': 'off'}, 'new_state': {'state': 'on', 'context': {'id': 'unmatched'}}}, 15000, 'unmatched'))
+        result = classify(command, rows)
+        self.assertEqual(result['unmatched_endpoint_on_count'], 1)
+        self.assertEqual(result['outcome'], 'UNRESOLVED_UNEXPLAINED_ON_TRANSITION')
+
+    def test_rejection_plus_unmatched_on_is_unresolved(self):
+        command, rows = fixture()
+        rows.append(event('expiry_v3_stage', {'command_id': command['command_id'], 'stage': 'rejected'}, 16000, 'ctx'))
+        rows.append(event('state_changed', {'entity_id': 'switch.tapo_p110m', 'old_state': {'state': 'off'}, 'new_state': {'state': 'on', 'context': {'id': 'unmatched'}}}, 16500, 'unmatched'))
+        result = classify(command, rows)
+        self.assertEqual(result['rejected_count'], 1)
+        self.assertEqual(result['outcome'], 'UNRESOLVED_UNEXPLAINED_ON_TRANSITION')
+
+    def test_rejection_with_same_context_on_but_no_pre_service_is_unresolved(self):
+        command, rows = fixture()
+        rows = [rows[0], rows[1], event('expiry_v3_stage', {'command_id': command['command_id'], 'stage': 'rejected'}, 16000, 'ctx'),
+                event('state_changed', {'entity_id': 'switch.tapo_p110m', 'old_state': {'state': 'off'}, 'new_state': {'state': 'on', 'context': {'id': 'ctx'}}}, 17000, 'ctx')]
+        result = classify(command, rows)
+        self.assertEqual(result['outcome'], 'UNRESOLVED_UNEXPLAINED_ON_TRANSITION')
+
+    def test_duplicate_pre_service_detected(self):
+        command, rows = fixture()
+        rows.insert(2, event('expiry_v3_stage', {'command_id': command['command_id'], 'stage': 'pre_service', 'policy': command['policy']}, 11510, 'ctx'))
+        result = classify(command, rows)
+        self.assertEqual(result['pre_service_count'], 2)
+        self.assertEqual(result['outcome'], 'DUPLICATE_PRE_SERVICE')
+
+    def test_duplicate_endpoint_on_detected(self):
+        command, rows = fixture()
+        rows.append(event('state_changed', {'entity_id': 'switch.tapo_p110m', 'old_state': {'state': 'on'}, 'new_state': {'state': 'on', 'context': {'id': 'ctx'}}}, 12000, 'ctx'))
+        result = classify(command, rows)
+        self.assertEqual(result['endpoint_on_transition_count'], 2)
+        self.assertEqual(result['outcome'], 'DUPLICATE_ENDPOINT_ON')
+
+    def test_missing_receipt_invalid(self):
+        command, rows = fixture()
+        rows = rows[1:]
+        result = classify(command, rows)
+        self.assertEqual(result['outcome'], 'INVALID_NO_HA_RECEIPT')
+
+    def test_receipt_after_deadline_invalid(self):
+        command, rows = fixture(received_at_ms=24000)
+        result = classify(command, rows)
+        self.assertEqual(result['outcome'], 'INVALID_RECEIPT_NOT_PROVEN_BEFORE_DEADLINE')
+
+    def test_pre_service_late(self):
+        command, rows = fixture(received_at_ms=10000)
+        rows[2]['event']['time_fired'] = iso(22000)
+        result = classify(command, rows)
+        self.assertEqual(result['pre_service_lateness_ms'], 2000)
+        self.assertEqual(result['outcome'], 'LATE_PRE_SERVICE')
+
+    def test_pre_service_on_time(self):
+        command, rows = fixture()
+        result = classify(command, rows)
+        self.assertEqual(result['pre_service_lateness_ms'], -5000)
+        self.assertEqual(result['outcome'], 'ON_TIME_PRE_SERVICE')
+
+    def test_endpoint_state_lateness_separate(self):
+        command, rows = fixture()
+        rows[-1]['event']['time_fired'] = iso(22000)
+        result = classify(command, rows)
+        self.assertEqual(result['endpoint_state_lateness_ms'], 2000)
+
+    def test_device_power_effect_separate(self):
+        command, rows = fixture()
+        rows.append(event('state_changed', {'entity_id': 'sensor.tapo_p110m_current_consumption', 'old_state': {'state': '0.0'}, 'new_state': {'state': '0.7', 'context': {'id': 'ctx'}}}, 12050, 'ctx'))
+        result = classify(command, rows)
+        self.assertEqual(result['device_power_effect_count'], 1)
+        self.assertEqual(result['device_power_on_at_ms'], 12050)
+
+    def test_no_independent_effect_inferred_from_ha_state(self):
+        command, rows = fixture()
+        result = classify(command, rows)
+        self.assertEqual(result['independent_effect_count'], 0)
+        self.assertIsNone(result['independent_effect_at_ms'])
+
+
+class V3ConfigurationTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).resolve().parents[1]
+        self.v1 = yaml.safe_load((root / 'ha/packages/expiry_lab.yaml').read_text())
+        self.v2 = yaml.safe_load((root / 'ha/packages/expiry_physical_v2.yaml').read_text())
+        self.v3 = yaml.safe_load((root / 'ha/packages/expiry_physical_v3.yaml').read_text())
+
+    def test_v1_and_v2_unchanged(self):
+        self.assertTrue(self.v1['automation'])
+        self.assertTrue(self.v2['automation'])
+
+    def test_v3_ingress_and_four_workers(self):
+        automations = self.v3['automation']
+        self.assertEqual(len(automations), 5)
+        workers = [item for item in automations if item['id'] != 'mqtt_expiry_v3_ingress_probe']
+        self.assertEqual(len(workers), 4)
+        self.assertTrue(all(item['mode'] == 'queued' for item in workers))
+
+    def test_v3_policies_declared(self):
+        ids = [item['id'] for item in self.v3['automation']]
+        for name in ('mqtt_expiry_v3_physical_v3_broker_only', 'mqtt_expiry_v3_physical_v3_trigger_check',
+                     'mqtt_expiry_v3_physical_v3_predictive_admission', 'mqtt_expiry_v3_physical_v3_execution_check'):
+            self.assertIn(name, ids)
+
+
+if __name__ == '__main__':
+    unittest.main()
