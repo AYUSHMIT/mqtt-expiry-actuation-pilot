@@ -1,0 +1,5 @@
+# Analysis/camera environment ONLY. Do not replace the experiment requirements.
+# Versions exercised offline in the build environment; Windows hardware is untested.
+numpy==2.3.5
+matplotlib==3.10.8
+opencv-python==4.13.0.92

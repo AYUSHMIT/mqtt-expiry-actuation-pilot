@@ -1,0 +1,57 @@
+test_bad_values_are_not_silently_dropped (test_boundary.BoundaryTests.test_bad_values_are_not_silently_dropped) ... ok
+test_committed_minus_5000_bug_is_rejected (test_boundary.BoundaryTests.test_committed_minus_5000_bug_is_rejected) ... ok
+test_complete_fixture_has_full_plan (test_boundary.BoundaryTests.test_complete_fixture_has_full_plan) ... ok
+test_duplicate_cell_rep_rejects_both (test_boundary.BoundaryTests.test_duplicate_cell_rep_rejects_both) ... ok
+test_duplicate_command_id_rejects_both (test_boundary.BoundaryTests.test_duplicate_command_id_rejects_both) ... ok
+test_empty_input_not_zero_violation_success (test_boundary.BoundaryTests.test_empty_input_not_zero_violation_success) ... ok
+test_input_hash_unchanged_and_no_overwrite (test_boundary.BoundaryTests.test_input_hash_unchanged_and_no_overwrite) ... ok
+test_late_receipt_is_invalid (test_boundary.BoundaryTests.test_late_receipt_is_invalid) ... ok
+test_margin_equalities_are_boundary (test_boundary.BoundaryTests.test_margin_equalities_are_boundary) ... ok
+test_missing_columns_error (test_boundary.BoundaryTests.test_missing_columns_error) ... ok
+test_missing_endpoint_is_unresolved (test_boundary.BoundaryTests.test_missing_endpoint_is_unresolved) ... ok
+test_missing_receipt_is_invalid (test_boundary.BoundaryTests.test_missing_receipt_is_invalid) ... ok
+test_missing_row_is_visible_and_cell_masked (test_boundary.BoundaryTests.test_missing_row_is_visible_and_cell_masked) ... ok
+test_near_deadline_is_not_promoted (test_boundary.BoundaryTests.test_near_deadline_is_not_promoted) ... ok
+test_off_plan_policy_rejected (test_boundary.BoundaryTests.test_off_plan_policy_rejected) ... ok
+test_raw_timestamp_arithmetic_not_minus_5000 (test_boundary.BoundaryTests.test_raw_timestamp_arithmetic_not_minus_5000) ... ok
+test_reject_plus_action_is_invalid (test_boundary.BoundaryTests.test_reject_plus_action_is_invalid) ... ok
+test_rejection_separate_from_timing (test_boundary.BoundaryTests.test_rejection_separate_from_timing) ... ok
+test_synthetic_cannot_be_published_as_measured (test_boundary.BoundaryTests.test_synthetic_cannot_be_published_as_measured) ... ok
+test_unknown_rejection_reason_rejected (test_boundary.BoundaryTests.test_unknown_rejection_reason_rejected) ... ok
+test_unmatched_activity_is_unresolved (test_boundary.BoundaryTests.test_unmatched_activity_is_unresolved) ... ok
+test_upstream_unresolved_not_overridden (test_boundary.BoundaryTests.test_upstream_unresolved_not_overridden) ... ok
+test_zero_pre_service_requires_null_not_zero_lateness (test_boundary.BoundaryTests.test_zero_pre_service_requires_null_not_zero_lateness) ... ok
+test_calibrate_then_analyze (test_optical.CalibrationTests.test_calibrate_then_analyze) ... ok
+test_calibration_cannot_be_overwritten (test_optical.CalibrationTests.test_calibration_cannot_be_overwritten) ... ok
+test_calibration_segment_not_measurement (test_optical.CalibrationTests.test_calibration_segment_not_measurement) ... ok
+test_insufficient_contrast_refused (test_optical.CalibrationTests.test_insufficient_contrast_refused) ... ok
+test_mixed_synthetic_real_refused (test_optical.CalibrationTests.test_mixed_synthetic_real_refused) ... ok
+test_partial_capture_requires_explicit_flag (test_optical.CalibrationTests.test_partial_capture_requires_explicit_flag) ... ok
+test_too_few_calibration_frames (test_optical.CalibrationTests.test_too_few_calibration_frames) ... ok
+test_wrong_roi_refused (test_optical.CalibrationTests.test_wrong_roi_refused) ... ok
+test_wrong_session_refused (test_optical.CalibrationTests.test_wrong_session_refused) ... ok
+test_camera_requires_explicit_optin (test_optical.CameraSafetyTests.test_camera_requires_explicit_optin) ... ok
+test_no_actuator_or_network_imports (test_optical.CameraSafetyTests.test_no_actuator_or_network_imports) ... ok
+test_offline_png_roundtrip (test_optical.CameraSafetyTests.test_offline_png_roundtrip) ... ok
+test_roi_outside_frame_refused (test_optical.CameraSafetyTests.test_roi_outside_frame_refused) ... ok
+test_roi_parse (test_optical.CameraSafetyTests.test_roi_parse) ... ok
+test_mock_capture_complete_with_metadata (test_optical.MockedCaptureWorkerTests.test_mock_capture_complete_with_metadata) ... ok
+test_mock_capture_open_failure_retained (test_optical.MockedCaptureWorkerTests.test_mock_capture_open_failure_retained) ... ok
+test_mock_capture_read_failure_retained (test_optical.MockedCaptureWorkerTests.test_mock_capture_read_failure_retained) ... ok
+test_exact_thresholds (test_optical.OpticalDetectorTests.test_exact_thresholds) ... ok
+test_first_support_separate_from_confirmation (test_optical.OpticalDetectorTests.test_first_support_separate_from_confirmation) ... ok
+test_flicker_not_a_confirmed_edge (test_optical.OpticalDetectorTests.test_flicker_not_a_confirmed_edge) ... ok
+test_gap_resets_not_guessed_transition (test_optical.OpticalDetectorTests.test_gap_resets_not_guessed_transition) ... ok
+test_initial_state_not_transition (test_optical.OpticalDetectorTests.test_initial_state_not_transition) ... ok
+test_invalid_brightness (test_optical.OpticalDetectorTests.test_invalid_brightness) ... ok
+test_invalid_settings (test_optical.OpticalDetectorTests.test_invalid_settings) ... ok
+test_middle_band_resets_debounce (test_optical.OpticalDetectorTests.test_middle_band_resets_debounce) ... ok
+test_no_frame_skips_hidden (test_optical.OpticalDetectorTests.test_no_frame_skips_hidden) ... ok
+test_no_physical_timestamp_or_command_claim (test_optical.OpticalDetectorTests.test_no_physical_timestamp_or_command_claim) ... ok
+test_nonincreasing_clock_rejected (test_optical.OpticalDetectorTests.test_nonincreasing_clock_rejected) ... ok
+test_two_clean_edges (test_optical.OpticalDetectorTests.test_two_clean_edges) ... ok
+
+----------------------------------------------------------------------
+Ran 52 tests in 0.091s
+
+OK
