@@ -1,0 +1,65 @@
+{
+  "contract": "MQTT-EXPIRY-PHYSICAL-2.0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "ha_version": "2026.9.2",
+  "docker_compose": "Docker Compose version v5.5.1",
+  "images": {
+    "broker": {
+      "Id": "sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21",
+      "RepoDigests": [
+        "eclipse-mosquitto@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21"
+      ],
+      "Created": "2026-09-17T21:15:44.761325023Z",
+      "Architecture": "amd64",
+      "Os": "linux"
+    },
+    "homeassistant": {
+      "Id": "sha256:a1bc133af84ee6505fe2c266d9805b7c75b780dfdc188edfee3b11e8f3cd8efe",
+      "RepoDigests": [
+        "ghcr.io/home-assistant/home-assistant@sha256:a1bc133af84ee6505fe2c266d9805b7c75b780dfdc188edfee3b11e8f3cd8efe"
+      ],
+      "Created": "2026-09-11T19:46:43.850311957Z",
+      "Architecture": "amd64",
+      "Os": "linux"
+    }
+  },
+  "broker_version": "mosquitto version 2.0.22",
+  "endpoint_entity": "switch.tapo_p110m",
+  "endpoint_metadata": {
+    "friendly_name": "Tapo P110M",
+    "manufacturer": null,
+    "model": null,
+    "sw_version": null,
+    "hw_version": null,
+    "firmware_version": null
+  },
+  "file_sha256": {
+    "measurement.py": "c589f55674e4377b490bc7f4bd911d2a0f7345e8e9464cd35e61750353769098",
+    "measurement_v2.py": "608c230a1e1ff45b1bb28e76ebaa54acff3abd0ff1a4a4bd7a5d853298a5c3c8",
+    "run.py": "e3825231e9c0d048a73dcc355f7ab18a513b2fb12126e04ed64101c3b8d58aa0",
+    "run_v2.py": "343b0a3b5599d3858f7005cc2ef63aefc333b0e1b0cb2e872fcf1f222c1c1f4f",
+    "CONTRACT.md": "1f4843b0fc1846f336b58da95d85a2bfa863f8076ad7a04f89e1191e3209c88c",
+    "README.md": "4bddcbefcae3acd5390502b6acb342e84c65e158e494378cbba1f35bcebd576d",
+    "REAL_INTEGRATION_CONTRACT.md": "d7e4979cedfc518fe9bb73b515fa751905b4bf5e2230910a056d248594277a9b",
+    "SOURCES.md": "dca430b9347327ed470b0cfef42a215e3b54f7e39230d7598c73d50f3dca1919",
+    "V2_IMPLEMENTATION_NOTE.md": "779639d42816de40daa0b9dab4146006207ad2598d7bba4e45b651446961f395",
+    "V2_TIMING_AMENDMENT.md": "4bc6e90f5d627cf5bf3d3647cf9d8d2b319b12e5fd6d88391bb794a7f190c1fa",
+    "VALIDATION.md": "6e78f4682d592bf0d7e9c65d192f89b7f7d28d7680318d425c990bdc31a09e06",
+    "compose.yaml": "d73682fefcd1a13496e35e3b7edc41af9d8ae5f1bc69dbfbd44655c55b407002",
+    "requirements.txt": "01ef619035497712372f179f0b3c73df8782428bbbdfb37f72793ccb88334716",
+    "lab.sh": "e4a5af6dd1a956f77a72c2baadd761954ef2c2cf15ca5af34dcda33b999eec3d",
+    "ha\\configuration.yaml": "b8bb72ec551f511227ec501961d29f16821d28c9c0d8261d9d6174ea33595f95",
+    "ha\\packages\\expiry_lab.yaml": "aa712434b346d2882911adc6d02dcb9afeff678bd707e96641eccf6d1780c01a",
+    "ha\\packages\\expiry_physical_v2.yaml": "0c69ad6a71b0e5abf6a9cd4d3b8ea66bd4a0b3a7ae77d59918583423addd61e9",
+    "mosquitto\\mosquitto.conf": "7b98ce759ba7c71da2fd2d72605f33c8a7dcd8d9921ac90d805562bdf70ca4eb"
+  },
+  "ha_mqtt_client_id": "1aqO60S02d7p4qnWByswXu",
+  "ha_mqtt5_connect_evidence": "broker-1  | 1789786853: New client connected from 172.18.0.3:60291 as 1aqO60S02d7p4qnWByswXu (p5, c1, k60).",
+  "ha_experiment_subscription_topics": [
+    "ccnc/expiry/v2/command/+",
+    "ccnc/expiry/v2/command/physical_baseline_queued",
+    "ccnc/expiry/v2/command/physical_admission_queued",
+    "ccnc/expiry/v2/command/physical_execution_queued"
+  ]
+}

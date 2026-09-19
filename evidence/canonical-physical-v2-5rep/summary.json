@@ -1,0 +1,19 @@
+{
+  "contract": "MQTT-EXPIRY-PHYSICAL-2.0",
+  "repetitions": 5,
+  "controls_pass": true,
+  "counts": {
+    "BROKER_CONTROL_PASS": 5,
+    "ON_TIME_PHYSICAL_REQUEST": 15,
+    "LATE_PHYSICAL_REQUEST": 10,
+    "REJECTED_AT_EXECUTION_CHECK": 5
+  },
+  "candidate_trials_valid": true,
+  "poster_decision": "NOT_AUTOMATIC: no poster success decision is produced by this runner.",
+  "mqtt_protocol_violation_claimed": false,
+  "home_assistant_vulnerability_claimed": false,
+  "physical_relay_endpoint_tested": true,
+  "independent_current_flow_verified": false,
+  "parallel_control_omitted": true,
+  "parallel_control_omission_reason": "One binary P110M cannot execute overlapping pulse transactions independently."
+}
