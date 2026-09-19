@@ -127,3 +127,61 @@ These are allowed only when the evidence supports them; the auditor must not dow
 ## Non-goals
 
 This v3 work does not run a candidate experiment, does not actuate the physical plug, and does not alter any canonical v1 or v2 evidence.
+
+## Pre-candidate device-reported power characterization
+
+`python run_v3.py characterize-power --samples 20` is a real, separately invoked
+REST workflow. It may be run only after review and explicit user approval. It
+does not publish MQTT commands, use application deadlines or queue depth, freeze
+stale/fresh outcomes, classify candidates, or produce a poster decision. The
+candidate-study constants above remain unchanged.
+
+The operator must verify an isolated, benign low-risk load and exclusive control
+of the endpoint. The runner cannot identify the appliance. Fridge, microwave,
+coffee maker, and computer loads are prohibited. No live characterization is
+performed as part of implementation or validation.
+
+The provisional threshold is exactly 1.0 W, labeled
+`PROVISIONAL_DEVICE_REPORTED_POWER_THRESHOLD`: ON means greater than 1 W and OFF
+means less than or equal to 1 W. This is an observation convention, not a research
+conclusion. Raw telemetry is retained for offline threshold reconsideration.
+Device-reported power is not independent electrical ground truth.
+
+Defaults: 3 seconds of OFF baseline observation, 3 seconds of ON hold after both
+ON observations, and 3 seconds of OFF settling after both OFF observations.
+`--settle-before-s`, `--on-hold-s`, and `--settle-after-s` accept 0.1–60 seconds;
+`--samples` accepts 1–1000. Each edge has a 10-second observation timeout; REST
+requests have a 5-second timeout. A slow power report can therefore extend ON
+beyond the hold interval, up to the ON observation timeout plus that interval.
+
+Polling uses a 100 ms monotonic schedule through REST `/api/states`. Every poll
+records the requested entity states, raw power value/unit, switch `last_changed`,
+automation activity, wall and monotonic response timestamps, and request start.
+Overruns are explicitly journaled and resume after 100 ms rather than fabricating
+missed readings. Service calls run concurrently with polling. First observation
+times include REST latency and polling resolution; they are not exact device
+transition times. Latencies use monotonic time; wall timestamps are retained.
+No nearest-timestamp attribution or independent current-flow claim is made.
+
+Preflight requires HA_TOKEN, exact HA 2026.9.2 and Mosquitto 2.0.22, running images
+with recorded digests, available switch and power sensor, finite nonnegative W
+readings, endpoint already OFF, power at or below threshold, and all five v3
+automations enabled and idle. Git branch/SHA and available device/integration
+metadata are recorded. Loaded older experiment automations must also be idle.
+Automation activity is checked throughout observation.
+
+Each sample must begin and end OFF. Missing observations, invalid telemetry,
+service errors, unexpected observed state changes, changed `last_changed` without
+the permitted edge, or experiment automation activity invalidate the sample and
+abort the whole run. No corrective OFF or retry is issued. On failure the endpoint
+may remain ON and requires explicit operator review. Polling cannot establish
+causal ownership of a concurrent external change in the expected direction or
+guarantee capture of every between-poll event; exclusive operator control is an
+external requirement, not a claim proved by REST observations.
+
+Outputs are isolated under `results-v3-power-characterization/<UTC>-<id>/`:
+`environment.json`, `samples.csv`, `telemetry.jsonl`, `summary.json`, and
+`INVALID.txt` on abort. Partial invalid samples and raw polls remain visible.
+Summaries use valid samples only, with n/mean/sample-SD/median/min/max; SD is null
+for n < 2. Both `independent_physical_effect_verified` and `candidate_experiment`
+are always false.

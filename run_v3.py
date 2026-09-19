@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""v3 hardened runner scaffold.
+"""v3 candidate scaffolds and an explicitly invoked REST characterization mode.
 
-This file is intentionally a design-time implementation scaffold. It does not run
-candidate experiments or actuate any physical endpoint during this task.
+Live characterization requires review, explicit approval, and a benign load.
 """
 from __future__ import annotations
 
@@ -88,15 +87,11 @@ def policy_mode(*, cells_path: Path, repetitions: int) -> dict:
                         'physical_v3_predictive_admission', 'physical_v3_execution_check']}
 
 
-def characterize_power_mode(*, samples: int) -> dict:
-    """Power-telemetry characterization scaffold only.
-
-    This mode is deliberately non-candidate and only records device-reported
-    telemetry around ordinary state transitions without inferring independent
-    electrical proof.
-    """
-    return {'mode': 'characterize-power', 'samples': samples,
-            'sensor_entity': POWER_SENSOR_ENTITY, 'device_reported_telemetry_only': True}
+def characterize_power_mode(*, samples: int, settle_before_s: float = 3,
+                            on_hold_s: float = 3, settle_after_s: float = 3) -> dict:
+    """Live non-candidate telemetry workflow. Never invoked automatically."""
+    from power_characterization import Settings, run_characterization
+    return run_characterization(Settings(samples, settle_before_s, on_hold_s, settle_after_s))
 
 
 def main() -> int:
@@ -112,6 +107,12 @@ def main() -> int:
 
     power = subparsers.add_parser('characterize-power', help='Device-reported power telemetry characterization only')
     power.add_argument('--samples', type=int, default=20)
+    power.add_argument('--settle-before-s', type=float, default=3,
+                       help='OFF baseline observation interval (default: 3 seconds)')
+    power.add_argument('--on-hold-s', type=float, default=3,
+                       help='ON hold after both observations (default: 3 seconds)')
+    power.add_argument('--settle-after-s', type=float, default=3,
+                       help='OFF observation interval after both returns (default: 3 seconds)')
 
     args = parser.parse_args()
     if args.command == 'boundary':
@@ -119,12 +120,13 @@ def main() -> int:
     elif args.command == 'policy':
         result = policy_mode(cells_path=args.cells, repetitions=args.repetitions)
     elif args.command == 'characterize-power':
-        result = characterize_power_mode(samples=args.samples)
+        result = characterize_power_mode(samples=args.samples, settle_before_s=args.settle_before_s,
+                                         on_hold_s=args.on_hold_s, settle_after_s=args.settle_after_s)
     else:
         raise ValueError(f'Unsupported command: {args.command}')
 
     print(json.dumps(result, indent=2))
-    return 0
+    return 2 if args.command == 'characterize-power' and not result['all_samples_valid'] else 0
 
 
 if __name__ == '__main__':
