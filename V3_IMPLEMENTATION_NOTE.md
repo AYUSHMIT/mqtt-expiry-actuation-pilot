@@ -146,6 +146,16 @@ The CSV contains all 17 required analyzer columns without renaming, plus blocker
 IDs, publication time, actual_queue_depth, topology_valid, valid, OFF evidence,
 power-observation status, clock/drift evidence and invalid_reason when applicable.
 Invalid partial rows remain in the CSV; failed runs never automatically rerun.
+Broker preflight replays connection epochs in log order and requires exactly one
+currently connected MQTT-v5 epoch with all six v3 subscriptions (ingress, four
+policy topics, and the internal predictive worker topic). Explicit normal close
+or disconnect records exclude historical epochs; reuse of a client ID starts
+with no subscriptions. Environment evidence retains epoch history, timestamps,
+the required topics, active candidate list, selection, and broker-log hash.
+Zero or multiple active complete candidates still abort. PING traffic does not
+establish membership. This is log-snapshot evidence, not a continuing liveness
+guarantee. No policy or experimental timing changes accompany this repair.
+
 Summary sets candidate_experiment/configuration_bound_result true and MQTT
 violation/HA vulnerability/independent-effect claims false; no poster decision.
 

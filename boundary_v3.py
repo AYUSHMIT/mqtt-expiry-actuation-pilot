@@ -24,6 +24,10 @@ POLICY = 'physical_v3_broker_only'
 WORKER_ID = 'mqtt_expiry_v3_' + POLICY
 PLAN_PATH = ROOT / 'v3_analysis_optical/plans/boundary_stage1.json'
 GOOD = {'ON_TIME_PRE_SERVICE', 'LATE_PRE_SERVICE', 'BOUNDARY_EXCLUDE_FROM_HEADLINE'}
+REQUIRED_MQTT_TOPICS = frozenset({TOPIC + '/+',
+    *(TOPIC + '/physical_v3_' + policy for policy in
+      ('broker_only', 'trigger_check', 'predictive_admission', 'execution_check')),
+    'ccnc/expiry/v3/internal/predictive_accepted'})
 REQUIRED_COLUMNS = ['command_id', 'policy', 'queue_depth', 'ttl_s', 'rep', 'expires_at_ms',
     'receipt_count', 'received_at_ms', 'pre_service_count', 'pre_service_at_ms',
     'pre_service_lateness_ms', 'endpoint_on_transition_count', 'endpoint_on_at_ms',
@@ -171,6 +175,67 @@ class V3HA(HA):
         self.thread.start()
 
 
+def parse_active_mqtt_clients(log_text, required_topics):
+    """Replay chronological broker output, retaining separate connection epochs.
+
+    Input order is authoritative (including within a one-second timestamp).
+    No wall-clock sorting, PING inference, or inherited subscriptions.
+    """
+    current, epochs = {}, []
+    ignored_subscriptions = 0
+    for line_number, line in enumerate(log_text.splitlines(), 1):
+        record = re.search(r'(?:^|\|\s*)(\d+):\s*(.*)$', line)
+        if not record:
+            continue
+        timestamp, message = int(record[1]), record[2]
+        evidence = {'line': line_number, 'timestamp': timestamp}
+        connected = re.fullmatch(r'New client connected .+ as (\S+) \(p(\d+), .+\)\.', message)
+        if connected:
+            cid, protocol = connected[1], int(connected[2])
+            if cid in current:
+                current[cid].update(connected=False, end_reason='replaced_by_new_connection', end=evidence)
+            epoch = dict(client_id=cid, protocol=protocol, connected=True,
+                         epoch=len(epochs) + 1, connect=evidence, subscriptions=set())
+            epochs.append(epoch)
+            current[cid] = epoch
+            continue
+        # Exact normal-close forms from Mosquitto v2.0.22 src/loop.c do_disconnect.
+        closed = re.fullmatch(r'Client (\S+) (closed its connection\.|disconnected\.)', message)
+        if closed:
+            epoch = current.pop(closed[1], None)
+            if epoch is not None:
+                epoch.update(connected=False, end_reason=closed[2], end=evidence)
+            continue
+        subscribed = re.fullmatch(r'(\S+) [0-2] (\S+)', message)
+        if subscribed:
+            if subscribed[1] in current:
+                current[subscribed[1]]['subscriptions'].add(subscribed[2])
+            else:
+                ignored_subscriptions += 1
+    required = set(required_topics)
+    candidates = sorted(cid for cid, epoch in current.items()
+                        if epoch['protocol'] == 5 and required <= epoch['subscriptions'])
+    for epoch in epochs:
+        epoch['subscriptions'] = sorted(epoch['subscriptions'])
+    return {'required_topics': sorted(required), 'active_complete_candidates': candidates,
+            'active_complete_candidate_count': len(candidates),
+            'selected_client_id': candidates[0] if len(candidates) == 1 else None,
+            'epochs': epochs, 'ignored_noncurrent_subscriptions': ignored_subscriptions,
+            'broker_log_sha256': hashlib.sha256(log_text.encode('utf-8')).hexdigest()}
+
+
+class BrokerEvidenceError(RuntimeError):
+    def __init__(self, evidence):
+        super().__init__('HA MQTT 5 client/subscriptions not uniquely established from active broker epochs')
+        self.broker_evidence = evidence
+
+
+def require_active_mqtt_client(evidence):
+    if evidence['active_complete_candidate_count'] != 1:
+        raise BrokerEvidenceError(evidence)
+    return evidence['selected_client_id']
+
+
 def environment(ha, journal, command=shell):
     info = {'branch': command('git', 'branch', '--show-current'), 'git_sha': command('git', 'rev-parse', 'HEAD'),
             'ha_version': ha.rest('config').get('version'), 'mqtt_protocol': 5,
@@ -183,21 +248,8 @@ def environment(ha, journal, command=shell):
         raise RuntimeError('Mosquitto version must be exactly 2.0.22')
     info['broker_version'] = match[1]
     log = command('docker', 'compose', 'logs', '--no-color', 'broker')
-    clients, subscriptions = {}, {}
-    for line in log.splitlines():
-        connected = re.search(r'New client connected .* as ([^ ]+) \(p(\d+)[,)]', line)
-        if connected:
-            clients[connected[1]] = int(connected[2])
-            subscriptions[connected[1]] = set()
-        subscribed = re.search(r':\s+([^ ]+) [0-2] (\S+)\s*$', line)
-        if subscribed and subscribed[1] in clients:
-            subscriptions[subscribed[1]].add(subscribed[2])
-    required_topics = {TOPIC + '/+', TOPIC + '/' + POLICY}
-    candidates = [cid for cid, protocol in clients.items() if protocol == 5
-                  and required_topics <= subscriptions[cid]]
-    if len(candidates) != 1:
-        raise RuntimeError('HA MQTT 5 client/subscriptions not uniquely established from broker evidence')
-    info['ha_mqtt5_client_id'] = candidates[0]
+    info['broker_mqtt_evidence'] = parse_active_mqtt_clients(log, REQUIRED_MQTT_TOPICS)
+    info['ha_mqtt5_client_id'] = require_active_mqtt_client(info['broker_mqtt_evidence'])
     info['images'] = {}
     for service in ('broker', 'homeassistant'):
         cid = command('docker', 'compose', 'ps', '-q', service)
@@ -363,6 +415,8 @@ def run_boundary(repetitions=5, *, ha_factory=V3HA, pub_factory=MQTT, command=sh
         runner.guard()
         snapshot(ha, journal, expected_current=0, require_off=True)
     except (Exception, KeyboardInterrupt) as exc:
+        if isinstance(exc, BrokerEvidenceError):
+            info['broker_mqtt_evidence'] = exc.broker_evidence
         error = str(exc) or 'Interrupted by operator'
         if rows:
             target = next((r['command'] for r in journal.snapshot() if r.get('kind') == 'boundary_publish'
