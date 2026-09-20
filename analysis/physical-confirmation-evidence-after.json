@@ -1,0 +1,98 @@
+[
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T174739Z-4e71109a\\environment.json",
+        "sha256":  "A4DDFB3428EB30D70451225F79DC15FD665D21DFC2A98C726B2FE6947F82643D"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T174739Z-4e71109a\\events.jsonl",
+        "sha256":  "90F4D104246BCF12CC285FDF916BED5980DD2C452CE2F357E9C9C9341D9468A6"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T174739Z-4e71109a\\INVALID.txt",
+        "sha256":  "E40EB7032312F7C20AA1C70084EE7AE957D7D4E87FE5F6DF2E30B8D4A815CC8A"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T174739Z-4e71109a\\summary.json",
+        "sha256":  "91A944CCDBE8CA428DF9217E8A47F63956F27621CBAFB37156A173FAF3C63B91"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T174739Z-4e71109a\\trials.csv",
+        "sha256":  "5A76328F978CA7FEACF097B3CD33239CCB8CE9A18D5DD0247D1A32C34269DACF"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T180634Z-3b25f535\\environment.json",
+        "sha256":  "03F9CD41381FEE2150B18F9FD306B5D6577051ADB2D1A76080EAB4D046DA819C"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T180634Z-3b25f535\\events.jsonl",
+        "sha256":  "85EE39B04AFD3B0210BC8EACEE2FA8D2244C43E86BF0A8A56E289CAA04CC17C5"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T180634Z-3b25f535\\INVALID.txt",
+        "sha256":  "2732D7D65442F4A1C14D40FF64399F7506A458CB4DCD0D6980C433C3E7B8240E"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T180634Z-3b25f535\\summary.json",
+        "sha256":  "A5228344C5DCEF10F6456B5B1F13DD906E66B30518F98D270DF5DAC71BB065E5"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T180634Z-3b25f535\\trials.csv",
+        "sha256":  "0D4EC27CBEF59BD99B3B7AF850A0B85C0F6618DD7F7F010FEDA628A330A60017"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T182424Z-5d442286\\environment.json",
+        "sha256":  "F8CAD827E5998A6BFC925FFE0D099ECFA80E449141749FB648A1D833D3D66213"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T182424Z-5d442286\\events.jsonl",
+        "sha256":  "624CC8D9C275E099AE9F4DD007064E247BED90E70277D87E64A02EACE8C1B60F"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T182424Z-5d442286\\INVALID.txt",
+        "sha256":  "0AC1694EA3C76693B899FB61962185C76390C2C6966250096D670C578FEA5A31"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T182424Z-5d442286\\summary.json",
+        "sha256":  "9CA118F23594C68530FF53A3EEEF67B288304B1D2388A794F89953A91B1E50B9"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-boundary\\20260920T182424Z-5d442286\\trials.csv",
+        "sha256":  "51538E1B4A864814CA2BD1621F1FBB33875828F9DD659ED959B1F56F35FDC017"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-power-characterization\\20260920T160503Z-b7a5f9cc\\environment.json",
+        "sha256":  "523C24C6BA476A50FC70D13FFE04FCA9EB08B032B7988F51555717F7B647D829"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-power-characterization\\20260920T160503Z-b7a5f9cc\\samples.csv",
+        "sha256":  "6B35640D6C80C53E5BFA540C5DCA9AAD363262A5C5A5D42F5BD19CA1AD5AE7EE"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-power-characterization\\20260920T160503Z-b7a5f9cc\\summary.json",
+        "sha256":  "C3A545FAC547DC999C8F86620C59AD909A0EDE808E23D591264267A1352075EE"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\results-v3-power-characterization\\20260920T160503Z-b7a5f9cc\\telemetry.jsonl",
+        "sha256":  "78A7586F56315E1BB178A336E3FCFAADAEF1B5989083E34A761D1AD1B4B654E0"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\v3_analysis_optical\\_local\\calibration-20260920-01.json",
+        "sha256":  "6037F79303D01711ABDC09E27E366883AE48F83085A8E04A394A901233894050"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\v3_analysis_optical\\_local\\dark-20260920-01\\capture.json",
+        "sha256":  "77720EA310CFCC5608EF04914C2B7828F3CAD2222DD44CC4439E2D7A858A4763"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\v3_analysis_optical\\_local\\dark-20260920-01\\frames.csv",
+        "sha256":  "EA6EEEC9CEBF8FB149E70E416480909B81DA607198ABDB3458AE0ECB46F9B175"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\v3_analysis_optical\\_local\\light-20260920-01\\capture.json",
+        "sha256":  "8DB9E1E3CB13DD33151372B7D27552494C66A24B4BB2679668D96AF43277E5CA"
+    },
+    {
+        "path":  "C:\\Users\\ayush\\mqtt-expiry-actuation-pilot\\v3_analysis_optical\\_local\\light-20260920-01\\frames.csv",
+        "sha256":  "073D0B0CC03F7628AD2B734B21904B0BB50DEFC78A062FA6143E6727D78F70B1"
+    }
+]

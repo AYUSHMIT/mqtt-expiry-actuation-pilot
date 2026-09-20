@@ -41,6 +41,19 @@ A pre-service marker is valid only for the same command ID and the same causal c
 
 ## Candidate study plan
 
+Endpoint confirmation is an instrumentation bound: `PHYSICAL_CONFIRMATION_TIMEOUT_S = 10`.
+All four v3 physical workers wait at most 10 seconds for each ON/OFF endpoint
+confirmation, preserving `continue_on_timeout: false`. The intended confirmed-ON
+hold remains `PULSE_S = 5`; no retry or automatic corrective OFF is added.
+This fixed round bound uses the prior 20/20 valid characterization
+`20260920T160503Z-b7a5f9cc`: HA ON/OFF maxima were 891/828 ms and device-power
+observation maxima were 6094/6110 ms. Ten seconds provides fixed headroom over
+those prior observations; it is not fitted to the later 5.874 s candidate failure.
+Device-power observation latency is not exact relay/contact closure latency and
+does not establish a physical actuation timing guarantee. Record this bound in
+future environment metadata, not the frozen scientific plan. The 35-second
+runner evidence timeout and all study settings remain unchanged.
+
 ### Stage 1 boundary study
 
 - PULSE_S = 5

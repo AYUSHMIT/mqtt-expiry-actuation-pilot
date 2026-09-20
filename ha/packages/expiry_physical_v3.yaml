@@ -48,7 +48,7 @@ automation:
     target:
       entity_id: switch.tapo_p110m
   - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
-    timeout: '00:00:05'
+    timeout: '00:00:10'
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
@@ -70,7 +70,7 @@ automation:
     target:
       entity_id: switch.tapo_p110m
   - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
-    timeout: '00:00:05'
+    timeout: '00:00:10'
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
@@ -118,7 +118,7 @@ automation:
     target:
       entity_id: switch.tapo_p110m
   - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
-    timeout: '00:00:05'
+    timeout: '00:00:10'
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
@@ -140,7 +140,7 @@ automation:
     target:
       entity_id: switch.tapo_p110m
   - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
-    timeout: '00:00:05'
+    timeout: '00:00:10'
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
@@ -238,7 +238,7 @@ automation:
     target:
       entity_id: switch.tapo_p110m
   - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
-    timeout: '00:00:05'
+    timeout: '00:00:10'
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
@@ -260,7 +260,7 @@ automation:
     target:
       entity_id: switch.tapo_p110m
   - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
-    timeout: '00:00:05'
+    timeout: '00:00:10'
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
@@ -318,7 +318,7 @@ automation:
     target:
       entity_id: switch.tapo_p110m
   - wait_template: '{{ is_state(''switch.tapo_p110m'', ''on'') }}'
-    timeout: '00:00:05'
+    timeout: '00:00:10'
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
@@ -340,7 +340,7 @@ automation:
     target:
       entity_id: switch.tapo_p110m
   - wait_template: '{{ is_state(''switch.tapo_p110m'', ''off'') }}'
-    timeout: '00:00:05'
+    timeout: '00:00:10'
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:

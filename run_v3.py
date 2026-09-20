@@ -13,6 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 PULSE_S = 5
+# Instrumentation bound; YAML endpoint waits mirror this, not the pulse duration.
+PHYSICAL_CONFIRMATION_TIMEOUT_S = 10
 QUEUE_DEPTHS = [0, 1, 2]
 TTL_GRID_S = [3, 6, 9, 12, 20]
 PER_JOB_SERVICE_BOUND_MS = 8000

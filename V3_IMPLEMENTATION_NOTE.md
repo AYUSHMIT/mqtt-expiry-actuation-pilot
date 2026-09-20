@@ -147,6 +147,17 @@ IDs, publication time, actual_queue_depth, topology_valid, valid, OFF evidence,
 power-observation status, clock/drift evidence and invalid_reason when applicable.
 Invalid partial rows remain in the CSV; failed runs never automatically rerun.
 
+The four physical workers now use 10-second ON and OFF confirmation waits,
+mirroring `run_v3.PHYSICAL_CONFIRMATION_TIMEOUT_S` in future environment metadata.
+Only those eight YAML timeout values change: all four 5-second hold delays,
+policy conditions, events, topics, queue settings and fail-closed stops remain
+unchanged. The bound is grounded in the earlier 20-sample characterization
+(maximum device-power ON/OFF observation latency 6094/6110 ms), not fitted to
+the later failed candidate. It does not bound exact relay/contact timing.
+The plan hash and runner's 35-second evidence timeout are unchanged.
+HA deployment/restart or automation reload remains pending; config validation
+does not activate the edited YAML. Existing acquisitions are not reclassified.
+
 Pulse-duration validation uses `PULSE_VALIDATION_TOLERANCE_MS = CLOCK_BOUND_MS`
 (the already frozen 250 ms measurement bound). It rejects an observed
 `off_request - on_confirmed` interval only when it is below

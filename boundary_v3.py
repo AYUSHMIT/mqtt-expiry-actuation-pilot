@@ -16,7 +16,7 @@ import uuid
 from measurement_v3 import classify, ha_events, utc_ms
 from power_characterization import AUTOMATION_IDS, shell
 from run import HA, Journal, MQTT, HA_URL
-from run_v3 import (PULSE_S, QUEUE_DEPTHS, TTL_GRID_S, CLOCK_BOUND_MS,
+from run_v3 import (PULSE_S, PHYSICAL_CONFIRMATION_TIMEOUT_S, QUEUE_DEPTHS, TTL_GRID_S, CLOCK_BOUND_MS,
                     REQUEST_CLASSIFICATION_MARGIN_MS, ENDPOINT_ENTITY, TOPIC)
 
 ROOT = Path(__file__).resolve().parent
@@ -244,6 +244,7 @@ def require_active_mqtt_client(evidence):
 def environment(ha, journal, command=shell):
     info = {'branch': command('git', 'branch', '--show-current'), 'git_sha': command('git', 'rev-parse', 'HEAD'),
             'ha_version': ha.rest('config').get('version'), 'mqtt_protocol': 5,
+            'physical_confirmation_timeout_s': PHYSICAL_CONFIRMATION_TIMEOUT_S,
             'endpoint_entity': ENDPOINT_ENTITY, 'plan_sha256': hashlib.sha256(PLAN_PATH.read_bytes()).hexdigest()}
     if info['ha_version'] != '2026.9.2':
         raise RuntimeError('HA version must be exactly 2026.9.2')
