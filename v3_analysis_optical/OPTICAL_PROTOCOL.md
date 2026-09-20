@@ -106,6 +106,18 @@ establishment is not an edge. Gaps over 250 ms or missing frame indices reset th
 detector to unknown, and no edge is guessed across the gap. First-support frame,
 last old-side frame and confirmation frame are all retained.
 
+On this Windows host, the frozen 20 September 2026 setup captures recorded
+`GetTickCount64()` with 15.625 ms monotonic clock resolution and isolated equal
+adjacent receipt timestamps. Frame indices must strictly increase; decreasing
+monotonic receipts remain invalid. Equal receipts are preserved and counted in
+capture-validation metadata, and create an explicit observation gap with reason
+`equal_quantized_receipt_timestamp`. The detector clears its state and pending
+confirmation, then uses the current frame to begin a new segment. No edge is
+inferred across equality. Wall time does not repair or order these observations,
+and no sub-quantum timestamps are invented. This host observation establishes
+neither camera exposure latency nor physical-event timing; it is not a research
+result. The brightness calibration rule and frozen defaults remain unchanged.
+
 The interval between last dark-side host receipt and first bright-side host
 receipt brackets observed images only. Unknown capture buffering means it is not
 a certified physical-effect interval. Repeated identical frame hashes can mean a

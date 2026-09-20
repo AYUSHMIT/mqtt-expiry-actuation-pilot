@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from v3_analysis_optical.optical_core import Detector,DetectorSettings,calibrate,analyze_capture
-from v3_analysis_optical.common import DataError,read_json,write_json
+from v3_analysis_optical.optical_core import Detector,DetectorSettings,calibrate,analyze_capture,load_capture
+from v3_analysis_optical.common import DataError,read_json,write_json,read_csv,write_csv
 from v3_analysis_optical.demo import optical_fixture
 from v3_analysis_optical.camera import capture,parse_roi,roi_pixels
 
@@ -56,9 +56,35 @@ class OpticalDetectorTests(unittest.TestCase):
         d=Detector(DetectorSettings(60,120));d.feed(frame(0,20))
         self.assertEqual(d.feed(frame(3,180))[0]['kind'],'optical_observation_gap')
 
-    def test_nonincreasing_clock_rejected(self):
+    def test_decreasing_clock_rejected(self):
         d=Detector(DetectorSettings(60,120));d.feed(frame(0,20))
-        with self.assertRaises(DataError):d.feed(frame(1,180,1_000_000_000))
+        with self.assertRaises(DataError):d.feed(frame(1,180,999_999_999))
+
+    def test_equal_clock_breaks_both_edge_directions_and_pending_confirmation(self):
+        for old,new in ((20,180),(180,20)):
+            for equal_index in (3,4,5):
+                with self.subTest(old=old,equal_index=equal_index):
+                    d=Detector(DetectorSettings(60,120));events=[]
+                    for i,v in enumerate([old]*3+[new]*6):
+                        row=frame(i,v)
+                        if i==equal_index:
+                            row=frame(i,v,frame(i-1,v)['read_end_monotonic_ns'])
+                        events+=d.feed(row)
+                    gaps=[e for e in events if e['kind']=='optical_observation_gap']
+                    self.assertEqual(len(gaps),1)
+                    self.assertEqual(gaps[0]['reason'],'equal_quantized_receipt_timestamp')
+                    self.assertEqual(gaps[0]['gap_ms'],0)
+                    self.assertEqual(gaps[0]['edge_across_gap'],'UNRESOLVED_NOT_INFERRED')
+                    self.assertFalse(any(e['kind']=='optical_transition' for e in events))
+                    initial=events[-1]
+                    self.assertEqual(initial['first_support_frame'],equal_index)
+                    self.assertEqual(initial['confirmation_frame'],equal_index+2)
+                    self.assertEqual(initial['first_support_receipt_ns'],frame(equal_index-1,new)['read_end_monotonic_ns'])
+
+    def test_duplicate_or_decreasing_frame_index_rejected(self):
+        for index in (0,1):
+            d=Detector(DetectorSettings(60,120));d.feed(frame(1,20))
+            with self.assertRaises(DataError):d.feed(frame(index,180,2_000_000_000))
 
     def test_invalid_brightness(self):
         for v in (float('nan'),float('inf'),-1,256):
@@ -82,6 +108,42 @@ class CalibrationTests(unittest.TestCase):
         self.light=optical_fixture(self.root/'light','light',[180]*60)
         self.measure=optical_fixture(self.root/'measure','measurement',[20]*30+[180]*30+[20]*30)
         self.cal=self.root/'cal.json'
+
+    def edit_synthetic_row(self, directory, key, value):
+        header,rows=read_csv(directory/'frames.csv')
+        rows[10][key]=value(rows)
+        if key=='read_end_monotonic_ns':
+            rows[10]['read_start_monotonic_ns']=int(rows[10][key])-1_000_000
+        write_csv(directory/'frames.csv',rows,header)
+
+    def test_equal_receipts_retained_and_calibration_thresholds_unchanged(self):
+        baseline=calibrate(self.dark,self.light,self.root/'baseline.json')
+        for directory in (self.dark,self.light,self.measure):
+            self.edit_synthetic_row(directory,'read_end_monotonic_ns',lambda rows: rows[9]['read_end_monotonic_ns'])
+            before=(directory/'frames.csv').read_bytes()
+            metadata_before=(directory/'capture.json').read_bytes()
+            meta,rows=load_capture(directory)
+            self.assertEqual(meta['capture_validation']['equal_adjacent_receipt_timestamp_count'],1)
+            self.assertEqual(rows[10]['read_end_monotonic_ns'],rows[9]['read_end_monotonic_ns'])
+            self.assertEqual((directory/'frames.csv').read_bytes(),before)
+            self.assertEqual((directory/'capture.json').read_bytes(),metadata_before)
+        result=calibrate(self.dark,self.light,self.cal)
+        for key in ('settings','dark_p95','light_p05','minimum_contrast','threshold_rule'):
+            self.assertEqual(result[key],baseline[key])
+        self.assertEqual(result['settings'],dict(low=20+160/3,high=20+320/3,debounce_frames=3,max_gap_ms=250.0))
+        self.assertEqual(result['capture_validation']['dark']['equal_adjacent_receipt_timestamp_count'],1)
+        summary=analyze_capture(self.measure,self.cal,self.root/'analysis')
+        self.assertEqual(summary['capture_validation']['equal_adjacent_receipt_timestamp_count'],1)
+        self.assertEqual(summary['observation_gaps'],1)
+
+    def test_capture_decreasing_receipt_rejected(self):
+        self.edit_synthetic_row(self.dark,'read_end_monotonic_ns',lambda rows:int(rows[9]['read_end_monotonic_ns'])-1)
+        with self.assertRaises(DataError):load_capture(self.dark)
+
+    def test_capture_duplicate_or_decreasing_index_rejected(self):
+        for index in (9,8):
+            self.edit_synthetic_row(self.dark,'frame_index',lambda rows:index)
+            with self.assertRaises(DataError):load_capture(self.dark)
 
     def test_calibrate_then_analyze(self):
         cal=calibrate(self.dark,self.light,self.cal)

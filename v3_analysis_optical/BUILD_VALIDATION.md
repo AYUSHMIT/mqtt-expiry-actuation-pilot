@@ -1,5 +1,23 @@
 # Build validation — 19 September 2026
 
+## Offline equality repair — 20 September 2026
+
+On branch `physical-v3-hardening`, based on `4ab43a1b576b7dccee6db805e341bfff2f367678`:
+57 optical tests and 103 main tests passed, with zero skips. The Windows `py`
+launcher was unavailable in the task shell, so the project's `.venv` Python was
+used; the main suite used the existing temporary PyYAML dependency via
+`PYTHONPATH`. Tests used synthetic captures and mocked devices only.
+
+The frozen Windows setup captures each contain one equal adjacent monotonic
+receipt timestamp and record `GetTickCount64()` resolution of 15.625 ms. Equality
+now breaks the observation segment, clearing both established state and pending
+debounce; decreasing receipts and non-increasing frame indices remain invalid.
+Validation counts equal receipts without changing source data. Regression tests
+cover both edge directions, raw timestamp preservation, capture rejection rules,
+and unchanged brightness calibration with isolated equal receipts. No wall-time
+substitution or sub-quantum timing is introduced. This does not establish camera
+exposure latency or physical-event timing and is not a research result.
+
 ## Completed here
 
 - 52 new unittest cases passed; 0 skipped in the build environment.

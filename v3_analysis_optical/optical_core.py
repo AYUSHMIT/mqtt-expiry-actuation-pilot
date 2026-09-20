@@ -61,14 +61,18 @@ class Detector:
             raise DataError("Bad frame intensity/read interval")
         result = []
         if self.previous:
-            if row["frame_index"] <= self.previous["frame_index"] or row["read_end_monotonic_ns"] <= self.previous["read_end_monotonic_ns"]:
-                raise DataError("Frame indices and receipt timestamps must increase strictly")
+            if row["frame_index"] <= self.previous["frame_index"]:
+                raise DataError("Frame indices must increase strictly")
+            if row["read_end_monotonic_ns"] < self.previous["read_end_monotonic_ns"]:
+                raise DataError("Receipt timestamps must not decrease")
             gap = (row["read_end_monotonic_ns"] - self.previous["read_end_monotonic_ns"]) / 1e6
-            if row["frame_index"] != self.previous["frame_index"] + 1 or gap > self.settings.max_gap_ms:
+            if gap == 0 or row["frame_index"] != self.previous["frame_index"] + 1 or gap > self.settings.max_gap_ms:
                 self.segment += 1
                 result.append({"kind": "optical_observation_gap", "segment": self.segment,
                                "previous_frame": self.previous["frame_index"], "frame_index": row["frame_index"],
-                               "gap_ms": gap, "edge_across_gap": "UNRESOLVED_NOT_INFERRED"})
+                               "gap_ms": gap,
+                               "reason": "equal_quantized_receipt_timestamp" if gap == 0 else "missing_frame_index" if row["frame_index"] != self.previous["frame_index"] + 1 else "receipt_gap_exceeds_maximum",
+                               "edge_across_gap": "UNRESOLVED_NOT_INFERRED"})
                 self.state, self.last_definite_old, self.pending_side, self.pending_frames = None, None, None, []
         self.previous = row
         side = "dark" if value <= self.settings.low else "light" if value >= self.settings.high else None
@@ -117,16 +121,22 @@ def load_capture(directory: Path) -> tuple[dict, list[dict]]:
     if not set(FRAME_FIELDS) <= set(header):
         raise DataError("Incomplete frame CSV schema")
     previous = None
+    equal_receipt_count = 0
     for row in rows:
         ix = exact_int(row["frame_index"], "frame_index")
         ts = exact_int(row["read_end_monotonic_ns"], "frame receipt")
-        if previous and (ix <= previous[0] or ts <= previous[1]):
-            raise DataError("Non-increasing capture indices/timestamps")
+        if previous:
+            if ix <= previous[0]:
+                raise DataError("Frame indices must increase strictly")
+            if ts < previous[1]:
+                raise DataError("Receipt timestamps must not decrease")
+            equal_receipt_count += ts == previous[1]
         previous = ix, ts
         for key in ("roi_mean", "roi_p05", "roi_p95"):
             if not 0 <= number(row[key], key) <= 255:
                 raise DataError("Invalid brightness")
     geometry(meta)
+    meta["capture_validation"] = {"equal_adjacent_receipt_timestamp_count": equal_receipt_count}
     return meta, rows
 
 def percentile_nearest_rank(values: list[float], p: float) -> float:
@@ -164,6 +174,7 @@ def calibrate(dark: Path, light: Path, output: Path, *, min_contrast: float = 15
                    "geometry": geometry(dm), "session_id": dm["session_id"],
                    "synthetic_fixture_only": bool(dm.get("synthetic_fixture_only")),
                    "dark_p95": du, "light_p05": ll, "minimum_contrast": min_contrast,
+                   "capture_validation": {"dark": dm["capture_validation"], "light": lm["capture_validation"]},
                    "source_hashes": {"dark_frames": sha256(dark / "frames.csv"), "light_frames": sha256(light / "frames.csv"),
                                      "dark_metadata": sha256(dark / "capture.json"), "light_metadata": sha256(light / "capture.json")},
                    "physical_timing_calibrated": False, "camera_buffer_latency_bound_ms": None,
@@ -197,6 +208,7 @@ def analyze_capture(capture: Path, calibration_path: Path, output: Path, *, allo
     (out / "optical_events.jsonl").write_text("".join(json.dumps(e, allow_nan=False) + "\n" for e in events), encoding="utf-8")
     write_csv(out / "optical_transitions.csv", edges, list(edges[0]) if edges else ["kind", "to_state", "first_support_receipt_ns", "confirmation_receipt_ns"])
     result = {"schema": "HOST-OPTICAL-ANALYSIS-1", "received_frames": len(rows),
+              "capture_validation": meta["capture_validation"],
               "observed_dark_to_light": sum(e["to_state"] == "light" for e in edges),
               "observed_light_to_dark": sum(e["to_state"] == "dark" for e in edges),
               "observation_gaps": sum(e["kind"] == "optical_observation_gap" for e in events),
