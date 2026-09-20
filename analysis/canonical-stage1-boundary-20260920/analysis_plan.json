@@ -1,0 +1,30 @@
+{
+  "boundary_and_missing_policy": "separate_counts_never_treated_as_success",
+  "classification_margin_ms": 1000,
+  "clock_bound_ms": 250,
+  "headline_cell_policy": "complete_evidence_only; boundary counts remain explicit",
+  "interval_policy": "descriptive_mean_sd_median_min_max; no population-probability claim",
+  "late_fraction_denominator": "valid_early_plus_valid_late_executed_only",
+  "numeric_consistency_tolerance_ms": 0.01,
+  "policies": [
+    "physical_v3_broker_only"
+  ],
+  "pulse_s": 5,
+  "queue_depths": [
+    0,
+    1,
+    2
+  ],
+  "repetitions": 5,
+  "schema": "MQTT-V3-ANALYSIS-PLAN-1",
+  "source_commit": "57db3187c3f1c8e79a40091c21ba03cc9a7aebbc",
+  "stage": "stage1_boundary",
+  "status": "PROPOSED_ANALYSIS_SUPPLEMENT_REQUIRES_LOCAL_REVIEW_AND_COMMIT",
+  "ttl_grid_s": [
+    3,
+    6,
+    9,
+    12,
+    20
+  ]
+}

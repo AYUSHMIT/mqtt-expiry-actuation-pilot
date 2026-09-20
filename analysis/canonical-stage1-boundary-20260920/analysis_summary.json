@@ -1,0 +1,30 @@
+{
+  "analysis_status_counts": {
+    "BOUNDARY_EXCLUDE_FROM_HEADLINE": 9,
+    "LATE_PRE_SERVICE": 20,
+    "ON_TIME_PRE_SERVICE": 46
+  },
+  "complete_cells": 15,
+  "csv_consistency_errors": 0,
+  "independent_physical_effect_verified": false,
+  "input_sha256": "164eb9aede06e33de9ea94eb3e3e3fc21d4f1b2afcefde1b2c5981c239e427dd",
+  "interpretation": "CSV-level consistency and descriptive sample frequencies only; no causal certification or population probability claim",
+  "missing_rows": 0,
+  "plan_sha256": "7e0b6842333f67f188c703b4eafcf6f052ee2397af570d6be968d4e6c339333d",
+  "planned_cells": 15,
+  "planned_rows": 75,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "raw_event_attribution_revalidated": false,
+  "rows": 75,
+  "source_sha256": {
+    "__init__.py": "8b1f7b93cb48e3f0fa304f0a83d5b3cfbb8fd6c71ab59570c0e824d2181d227b",
+    "boundary.py": "6175a05a2374f183dc0a5dd60dd6ecfd6dee5dd3d22e860610dfe8ad256a77e6",
+    "camera.py": "d7156839382426e0991fa9c75f7cf05ce9fb7eb7399ebf19b3e3c718969d7a75",
+    "common.py": "7ca59cf10277d412fb5522bc055bb3634b3230ffbccc3ad771b044775588d391",
+    "demo.py": "d20808a225a4a67638a682e84c853531bf1378beb4ae2fc9c5c8672bf7d100af",
+    "optical_core.py": "63d3276ad06f9ff0c8d51cc813260340a6cb78c91807ce4ce2f36ef01d0cdce4"
+  },
+  "synthetic_fixture_only": false,
+  "tool_version": "0.1.0"
+}
