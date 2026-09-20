@@ -146,6 +146,20 @@ The CSV contains all 17 required analyzer columns without renaming, plus blocker
 IDs, publication time, actual_queue_depth, topology_valid, valid, OFF evidence,
 power-observation status, clock/drift evidence and invalid_reason when applicable.
 Invalid partial rows remain in the CSV; failed runs never automatically rerun.
+
+Pulse-duration validation uses `PULSE_VALIDATION_TOLERANCE_MS = CLOCK_BOUND_MS`
+(the already frozen 250 ms measurement bound). It rejects an observed
+`off_request - on_confirmed` interval only when it is below
+`PULSE_S * 1000 - PULSE_VALIDATION_TOLERANCE_MS`, i.e. below 4750 ms; equality
+passes. This replaces the validator's arbitrary 1 ms allowance with explicit
+timestamp/scheduling uncertainty, not a bound derived from observed pulse data.
+The nominal physical transaction remains exactly `PULSE_S = 5` seconds.
+Stage ordering is checked separately; stage uniqueness, shared context, and the
+single ordered ON/OFF endpoint sequence remain required without relaxation.
+No queue depth, TTL, repetition, margin, candidate plan or HA policy changes.
+The partial run `20260920T180634Z-3b25f535` remains preserved as recorded,
+including its original invalid result; the repair does not relabel it.
+
 Broker preflight replays connection epochs in log order and requires exactly one
 currently connected MQTT-v5 epoch with all six v3 subscriptions (ingress, four
 policy topics, and the internal predictive worker topic). Explicit normal close

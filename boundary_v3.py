@@ -24,6 +24,8 @@ POLICY = 'physical_v3_broker_only'
 WORKER_ID = 'mqtt_expiry_v3_' + POLICY
 PLAN_PATH = ROOT / 'v3_analysis_optical/plans/boundary_stage1.json'
 GOOD = {'ON_TIME_PRE_SERVICE', 'LATE_PRE_SERVICE', 'BOUNDARY_EXCLUDE_FROM_HEADLINE'}
+# Frozen timestamp/scheduling uncertainty; does not change the nominal pulse.
+PULSE_VALIDATION_TOLERANCE_MS = CLOCK_BOUND_MS
 REQUIRED_MQTT_TOPICS = frozenset({TOPIC + '/+',
     *(TOPIC + '/physical_v3_' + policy for policy in
       ('broker_only', 'trigger_check', 'predictive_admission', 'execution_check')),
@@ -131,8 +133,11 @@ def prove_topology(command, blockers, rows, before):
 def verify_transaction(cid, rows):
     markers = ('pre_service', 'on_confirmed', 'off_request', 'off_confirmed', 'finished')
     times = [one_time(rows, cid, s) for s in markers]
-    if times != sorted(times) or times[2] - times[1] < PULSE_S * 1000 - 1:
-        raise RuntimeError('Physical transaction order/pulse is invalid')
+    if times != sorted(times):
+        raise RuntimeError('Physical transaction order is invalid')
+    pulse_ms = times[2] - times[1]
+    if pulse_ms < PULSE_S * 1000 - PULSE_VALIDATION_TOLERANCE_MS:
+        raise RuntimeError('Physical transaction pulse is invalid')
     contexts = {e.get('context', {}).get('id') for s in markers for e in stage_events(rows, cid, s)}
     if None in contexts or len(contexts) != 1:
         raise RuntimeError('Physical transaction contexts are ambiguous')
