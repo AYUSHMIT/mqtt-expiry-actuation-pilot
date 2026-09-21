@@ -1,6 +1,7 @@
-"""Stage-2 dry-run/read-only preflight and guarded future acquisition entrypoint.
+"""Stage-2 static validation and legacy read-only snapshot checks.
 
-No acquisition backend is enabled. Live inspection requires --live-read-only;
+Lifecycle-bound acquisition is exclusively stage2_runner.py acquire. Legacy
+snapshot checks alone cannot authorize it. Live inspection requires --live-read-only;
 dry-run imports no HA/MQTT/Docker transport and performs no live access.
 """
 import argparse
@@ -64,8 +65,8 @@ def dry_run(plan_path=PLAN_PATH, expected_sha256=PLAN_SHA256):
             'plan_sha256': expected_sha256, 'compatibility_spec_sha256': SPEC_SHA256,
             'repository': repo, 'new_target_count': 50, 'historical_count': len(historical),
             'execution_order': plan['execution_order'], 'static_semantics': 'exact frozen YAML/classifier/topology hashes verified',
-            'readiness_status': 'OFFLINE_VALIDATED_IMPLEMENTATION_INCOMPLETE',
-            'acquisition_implementation': 'INCOMPLETE_PLACEHOLDER',
+            'readiness_status': 'OFFLINE_IMPLEMENTED_LIVE_VALIDATION_PENDING',
+            'acquisition_implementation': 'IMPLEMENTED_NOT_LIVE_VALIDATED',
             'live_validation': 'PENDING',
             'historical_comparator': historical_comparator(),
             'acquisition_ready': False}
@@ -109,7 +110,7 @@ def compatibility(spec, current):
             'acquisition_ready': False}
 
 
-def inspect_environment(spec, snapshot, broker_log):
+def inspect_environment(spec, snapshot, broker_log, *, disabled_ids=frozenset()):
     """Validate already collected read-only observations, including active epochs."""
     from boundary_v3 import parse_active_mqtt_clients
     checks = []
@@ -135,7 +136,7 @@ def inspect_environment(spec, snapshot, broker_log):
         matches = [s for s in automations if s.get('attributes', {}).get('id') == aid]
         a = matches[0] if len(matches) == 1 else {}
         attributes = a.get('attributes', {})
-        check('automation.'+aid, len(matches) == 1 and a.get('state') == 'on'
+        check('automation.'+aid, len(matches) == 1 and a.get('state') == ('off' if aid in disabled_ids else 'on')
               and attributes.get('mode') == mode and type(attributes.get('current')) is int
               and attributes['current'] == 0, {'matches': len(matches), 'state': a.get('state'),
                                              'mode': attributes.get('mode'), 'current': attributes.get('current')})
@@ -240,7 +241,7 @@ def acquisition_guard(previous, current):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=('dry-run', 'preflight', 'acquire'))
+    parser.add_argument('mode', choices=('dry-run', 'preflight'))
     parser.add_argument('--plan', type=Path, default=PLAN_PATH)
     parser.add_argument('--plan-sha256', required=True)
     parser.add_argument('--live-read-only', action='store_true')

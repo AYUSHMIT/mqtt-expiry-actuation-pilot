@@ -1,9 +1,11 @@
 """Synthetic/read-only mock tests; never contacts HA, MQTT, Docker or a device."""
 import ast
 import copy
+import hashlib
 import json
 from pathlib import Path
 import socket
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
@@ -13,6 +15,15 @@ import stage2_readonly as ro
 from stage2_observer import Stage2Observer
 from stage2_contract import ROOT, PLAN_SHA256, EVENT_TYPES, ContractError
 from test_stage2_revision import plan, record
+
+
+SOURCE_BASELINE_COMMIT = '209b05844fd4c4d841abad98a0c61de2d8ea35cd'
+CONTRACT_BASELINE_SHA256 = '1feff4030b97e6ac6b8e5fdce4b480b33a01febe6ba574e8c06f334bd75146e3'
+
+
+def require_committed_contract(raw):
+    r.require(hashlib.sha256(raw).hexdigest() == CONTRACT_BASELINE_SHA256,
+              'Contract differs from authoritative committed source')
 
 
 def log(client='active', protocol=5, topics=None, base=1000):
@@ -79,7 +90,52 @@ class CompatibilityTests(unittest.TestCase):
     def test_all_prior_hashes_and_frozen_plan_preserved(self):
         proof=json.loads((ROOT/'analysis/stage2-readiness-preservation.json').read_text())
         for group in proof.values():
-            for name,digest in group.items():self.assertEqual(r.sha256(ROOT/name),digest,name)
+            for name,digest in group.items():
+                if name == 'stage2_contract.py':
+                    require_committed_contract((ROOT/name).read_bytes())
+                elif name == 'stage2_runner.py':
+                    # V2 lifecycle work implements this former scaffold; preserve
+                    # its historical baseline and bind the new implementation.
+                    baseline=subprocess.check_output(['git','show',SOURCE_BASELINE_COMMIT+':'+name],cwd=ROOT)
+                    self.assertEqual(hashlib.sha256(baseline).hexdigest(),digest)
+                    amendment=json.loads((ROOT/'analysis/stage2-lifecycle-v2-provenance.json').read_text())
+                    self.assertEqual(r.sha256(ROOT/name),amendment['implementation_sha256'][name])
+                else:
+                    self.assertEqual(r.sha256(ROOT/name),digest,name)
+
+    def test_committed_contract_eof_amendment_preserves_old_manifest(self):
+        amendment=json.loads((ROOT/'analysis/stage2-lifecycle-amendment-provenance.json').read_text())
+        source=amendment['source_baseline_amendment']
+        committed=subprocess.check_output(['git','show',SOURCE_BASELINE_COMMIT+':stage2_contract.py'],cwd=ROOT)
+        require_committed_contract(committed)
+        self.assertEqual((ROOT/'stage2_contract.py').read_bytes(),committed)
+        self.assertTrue(committed.endswith(b'\n') and not committed.endswith(b'\n\n'))
+        self.assertEqual(hashlib.sha256(committed+b'\n').hexdigest(),source['old_sha256'])
+        self.assertEqual(source['old_sha256'],'06b52d46cc0dcce8f90628753aaa011de01cfed7c642c23901d7f821f808c051')
+        self.assertEqual(r.sha256(ROOT/source['old_manifest']),source['old_manifest_sha256'])
+        self.assertEqual(source['old_manifest_sha256'],'3f6cbea1faac3c691c9d742a2179cdd4f7f64174059846db92cc34f8db5337de')
+
+    def test_substantive_contract_mutation_is_not_waived(self):
+        raw=(ROOT/'stage2_contract.py').read_bytes()
+        with self.assertRaises(ContractError):
+            require_committed_contract(raw.replace(b'repetitions == 5',b'repetitions == 6'))
+
+    def test_persisted_broker_restart_is_not_certified_as_empty(self):
+        import yaml
+        amendment=json.loads((ROOT/'analysis/stage2-lifecycle-amendment-provenance.json').read_text())
+        package=yaml.safe_load((ROOT/'ha/packages/expiry_physical_v3.yaml').read_text())
+        producer=next(a for a in package['automation'] if a['id']=='mqtt_expiry_v3_physical_v3_predictive_admission')
+        publish=next(a['data'] for a in producer['actions'] if a.get('action')=='mqtt.publish')
+        self.assertEqual(publish['topic'],amendment['broker']['p2_topic'])
+        self.assertEqual(publish['qos'],1)
+        self.assertIs(publish['retain'],False)
+        config=(ROOT/'mosquitto/mosquitto.conf').read_text().splitlines()
+        self.assertIn('persistence true',config)
+        self.assertIn('persistence_location /mosquitto/data/',config)
+        compose=yaml.safe_load((ROOT/'compose.yaml').read_text())
+        self.assertIn('broker_data:/mosquitto/data',compose['services']['broker']['volumes'])
+        self.assertEqual(amendment['lifecycle_verdict'],'INSUFFICIENT_PERSISTENT_VOLUME_REUSED')
+        self.assertFalse(amendment['backend_complete'])
 
     def test_canonical_hash_mismatch_fails(self):
         p=plan();p['canonical_stage1']['bundle_hashes']['analysis/canonical-stage1-boundary-20260920/trials.csv']='0'*64
@@ -302,7 +358,7 @@ class DryRunTests(unittest.TestCase):
         with patch.object(socket,'socket',side_effect=AssertionError('Network forbidden')):
             result=r.dry_run()
         self.assertEqual(result['live_validation'],'PENDING')
-        self.assertEqual(result['acquisition_implementation'],'INCOMPLETE_PLACEHOLDER')
+        self.assertEqual(result['acquisition_implementation'],'IMPLEMENTED_NOT_LIVE_VALIDATED')
         self.assertFalse(result['acquisition_ready'])
         with self.assertRaisesRegex(ContractError,'Preflight failed'):
             r.acquisition_guard(result,result)

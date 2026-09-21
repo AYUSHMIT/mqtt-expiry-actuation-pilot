@@ -1,0 +1,16 @@
+# Explicit overlay; the default broker_data volume is preserved, never reused.
+services:
+  broker:
+    volumes:
+      - type: volume
+        source: stage2_broker_data
+        target: /mosquitto/data
+        volume:
+          nocopy: true
+  homeassistant:
+    volumes:
+      - ./ha/stage2/expiry_physical_v3.yaml:/config/packages/expiry_physical_v3.yaml:ro
+volumes:
+  stage2_broker_data:
+    external: true
+    name: ${STAGE2_BROKER_VOLUME:?Set a new unique Stage-2 volume name}

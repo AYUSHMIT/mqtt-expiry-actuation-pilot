@@ -119,15 +119,22 @@ class Stage2Observer:
             self.error = 'Observer event/transport/journal failure'
             self.connected = False
 
-    def snapshot(self):
+    def snapshot(self, since=0, kinds=None):
         self.check_health()
         with self._lock:
-            return deepcopy(self._rows)
+            rows = self._rows[since:]
+            if kinds is not None:
+                rows = [r for r in rows if r.get('kind') in kinds]
+            return deepcopy(rows)
 
-    def validate_terminal(self, command, blockers, before):
+    def row_count(self):
+        with self._lock:
+            return len(self._rows)
+
+    def validate_terminal(self, command, blockers, before, *, since=0):
         self.check_health()
         require(command.get('policy') in (P1, P3), 'P0/P2 acquisition forbidden')
-        rows = self.snapshot()
+        rows = self.snapshot(since, {'ha_event', 'mqtt_publish', 'mqtt_puback'})
         # Require the actual publisher acknowledgement chain for target and
         # blockers. A caller declaration that publication succeeded is not enough.
         for cid in [command['command_id'], *blockers]:
