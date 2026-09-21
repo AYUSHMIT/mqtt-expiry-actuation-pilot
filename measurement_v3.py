@@ -130,9 +130,10 @@ def _observation_end_ms(rows: list[dict[str, Any]], command_id: str, *, start_ms
     return start_ms
 
 
-def classify(command: dict[str, Any], rows: list[dict[str, Any]], *,
+def _classify_v1(command: dict[str, Any], rows: list[dict[str, Any]], *,
              clock_bound_ms: float = CLOCK_BOUND_MS,
-             request_margin_ms: float = REQUEST_CLASSIFICATION_MARGIN_MS) -> dict[str, Any]:
+             request_margin_ms: float = REQUEST_CLASSIFICATION_MARGIN_MS,
+             pre_service_at_override: float | None = None) -> dict[str, Any]:
     cid = command.get('command_id') or command.get('id')
     case = command.get('case')
     policy = command.get('policy')
@@ -146,6 +147,8 @@ def classify(command: dict[str, Any], rows: list[dict[str, Any]], *,
     trigger_at = min((_at(event) for event in trigger_checks), default=None)
     predictive_at = min((_at(event) for event in predictive), default=None)
     pre_service_at = min((_at(event) for event in pre_services), default=None)
+    if pre_service_at_override is not None:
+        pre_service_at = pre_service_at_override
     rejection_reason = None
     if rejected:
         reason = rejected[0].get('data', {}).get('reason')
@@ -293,4 +296,34 @@ def classify(command: dict[str, Any], rows: list[dict[str, Any]], *,
     else:
         outcome = 'BOUNDARY_EXCLUDE_FROM_HEADLINE' if pre_service_at is not None else 'UNRESOLVED_ENDPOINT_ATTRIBUTION'
     result['outcome'] = outcome
+    return result
+
+
+def classify(command: dict[str, Any], rows: list[dict[str, Any]], *,
+             clock_bound_ms: float = CLOCK_BOUND_MS,
+             request_margin_ms: float = REQUEST_CLASSIFICATION_MARGIN_MS) -> dict[str, Any]:
+    """Keep historical v1 interpretation; require v2 for future repaired paths.
+
+    Stage-2 validation explicitly supplies evidence_version=2, so absent decision
+    events cannot downgrade a future row to the historical interpretation.
+    """
+    cid = command.get('command_id') or command.get('id')
+    repaired = any(e.get('data', {}).get('stage') in
+                   ('trigger_freshness_decision', 'execution_freshness_decision')
+                   for e in _events(rows, 'expiry_v3_stage', cid))
+    if command.get('evidence_version') != 2 and not repaired:
+        return _classify_v1(command, rows, clock_bound_ms=clock_bound_ms,
+                            request_margin_ms=request_margin_ms)
+    from stage2_evidence import normalize_path, EvidenceError
+    try:
+        normalized, fields = normalize_path(command, rows)
+    except (EvidenceError, KeyError, TypeError, ValueError, OverflowError) as exc:
+        return {'command_id': cid, 'policy': command.get('policy'),
+                'evidence_version': 2, 'outcome': 'INVALID_POLICY_EVIDENCE',
+                'invalid_reason': str(exc), 'pre_service_lateness_ms': None}
+    result = _classify_v1(command, normalized, clock_bound_ms=clock_bound_ms,
+                          request_margin_ms=request_margin_ms,
+                          pre_service_at_override=(fields['pre_service_boundary_at_ms']
+                                                   if fields['policy_accepted'] else None))
+    result.update(fields, evidence_version=2)
     return result

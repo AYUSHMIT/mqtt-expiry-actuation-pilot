@@ -1,0 +1,181 @@
+{
+  "schema": "STAGE2-COMPATIBILITY-1",
+  "plan_sha256": "1958bad32d6facbee997ede42a0cfd727458adddabf260a379def25fa9fc1cb0",
+  "fields": {
+    "ha_version": {
+      "category": "MUST_MATCH",
+      "historical_value": "2026.9.2",
+      "source": "canonical environment.json",
+      "rationale": "Exact identity/configuration preserves the recorded comparison; no image-version equivalence relaxation."
+    },
+    "broker_version": {
+      "category": "MUST_MATCH",
+      "historical_value": "2.0.22",
+      "source": "canonical environment.json",
+      "rationale": "Exact identity/configuration preserves the recorded comparison; no image-version equivalence relaxation."
+    },
+    "mqtt_protocol": {
+      "category": "MUST_MATCH",
+      "historical_value": 5,
+      "source": "canonical environment.json",
+      "rationale": "Exact identity/configuration preserves the recorded comparison; no image-version equivalence relaxation."
+    },
+    "endpoint_entity": {
+      "category": "MUST_MATCH",
+      "historical_value": "switch.tapo_p110m",
+      "source": "canonical environment.json",
+      "rationale": "Exact identity/configuration preserves the recorded comparison; no image-version equivalence relaxation."
+    },
+    "images": {
+      "category": "MUST_MATCH",
+      "historical_value": {
+        "broker": {
+          "Id": "sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21",
+          "RepoDigests": [
+            "eclipse-mosquitto@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21"
+          ]
+        },
+        "homeassistant": {
+          "Id": "sha256:a1bc133af84ee6505fe2c266d9805b7c75b780dfdc188edfee3b11e8f3cd8efe",
+          "RepoDigests": [
+            "ghcr.io/home-assistant/home-assistant@sha256:a1bc133af84ee6505fe2c266d9805b7c75b780dfdc188edfee3b11e8f3cd8efe"
+          ]
+        }
+      },
+      "source": "canonical environment.json",
+      "rationale": "Exact identity/configuration preserves the recorded comparison; no image-version equivalence relaxation."
+    },
+    "physical_confirmation_timeout_s": {
+      "category": "MUST_MATCH",
+      "historical_value": 10,
+      "source": "canonical environment.json",
+      "rationale": "Exact identity/configuration preserves the recorded comparison; no image-version equivalence relaxation."
+    },
+    "clock_bound_ms": {
+      "category": "MUST_MATCH",
+      "historical_value": 250,
+      "source": "canonical environment.json",
+      "rationale": "Exact identity/configuration preserves the recorded comparison; no image-version equivalence relaxation."
+    },
+    "pulse_s": {
+      "category": "MUST_MATCH",
+      "historical_value": 5,
+      "source": "canonical analysis_plan.json",
+      "rationale": "Scientific instrumentation unchanged."
+    },
+    "classification_margin_ms": {
+      "category": "MUST_MATCH",
+      "historical_value": 1000,
+      "source": "canonical analysis_plan.json",
+      "rationale": "Scientific instrumentation unchanged."
+    },
+    "power_sensor_entity": {
+      "category": "MUST_MATCH",
+      "historical_value": "sensor.tapo_p110m_current_consumption",
+      "source": "canonical raw events.jsonl state_changed",
+      "rationale": "Use the same recorded telemetry entity."
+    },
+    "power_unit": {
+      "category": "MUST_MATCH",
+      "historical_value": "W",
+      "source": "canonical raw events.jsonl state_changed attributes",
+      "rationale": "Recorded device-power unit."
+    },
+    "entity_domain": {
+      "category": "MUST_MATCH",
+      "historical_value": "switch",
+      "source": "canonical environment.json endpoint_entity",
+      "rationale": "Entity service domain is not the integration domain."
+    },
+    "integration_domain": {
+      "category": "HISTORICALLY_UNVERIFIED",
+      "historical_value": null,
+      "source": "absent from bound environment/raw entity metadata",
+      "rationale": "Do not infer integration from switch/sensor entity IDs or current registry."
+    },
+    "device_identifier": {
+      "category": "HISTORICALLY_UNVERIFIED",
+      "historical_value": null,
+      "source": "absent from bound environment/raw entity metadata",
+      "rationale": "No bound registry identity, serial or MAC was found."
+    },
+    "physical_endpoint_description": {
+      "category": "INFORMATIONAL",
+      "historical_value": "Tapo P110M",
+      "source": "canonical raw endpoint friendly_name",
+      "rationale": "Recorded label, not independent hardware model/serial verification."
+    },
+    "power_sensor_description": {
+      "category": "INFORMATIONAL",
+      "historical_value": "Tapo P110M Current consumption",
+      "source": "canonical raw power friendly_name",
+      "rationale": "Human-readable label may change; identity remains entity_id."
+    },
+    "clock_methodology": {
+      "category": "MUST_MATCH",
+      "historical_value": "five host wall-clock bracketed HA template probes; minimum abs(remote-midpoint)+RTT/2 <=250 ms; unchanged run.HA.calibration",
+      "source": "frozen run.HA.calibration and Stage-1 clock_probe records",
+      "rationale": "Five bracketed probes and 250 ms bound; GET-only preflight cannot reproduce template POST calibration."
+    },
+    "queue_topology_semantics": {
+      "category": "MUST_MATCH",
+      "historical_value": "observed same-worker occupancy; active blocker confirmed ON; second blocker queued; complete blocker FIFO/transaction evidence",
+      "source": "canonical boundary_v3.py source hash + raw topology records",
+      "rationale": "Target rejection must not erase blocker proof."
+    },
+    "p1_p3_semantics": {
+      "category": "MUST_MATCH",
+      "historical_value": {
+        "ha/packages/expiry_physical_v3.yaml": "8e3ed241170a9ffa07f85445ad5d2e63538c8e10f0a7b17d3851e1f73fb3992f",
+        "measurement_v3.py": "7a5853b925a35212c4372992398a56524c355f26cb2170cd85e88d2c250f6fe8",
+        "stage2_evidence.py": "8ea9ccd83bd4f22f2da698543f9f3681057ee5d5545a5bcb051e7946d645569e"
+      },
+      "source": "V4 frozen plan source binding",
+      "rationale": "V2 repaired semantics must remain exact; loaded-state proof remains required."
+    },
+    "instrumentation_repairs": {
+      "category": "MAY_DIFFER_WITH_DISCLOSURE",
+      "historical_value": [
+        "P1 parallel admission gate and local event handoff",
+        "P3 captured decision boundary rather than P0 event dispatch timestamp; bounded 250 ms evidence gap",
+        "versioned rejection-aware offline topology validation"
+      ],
+      "source": "V4 explicitly documented changes",
+      "rationale": "Only these named changes are permitted; no arbitrary source-equivalence waiver."
+    },
+    "commit": {
+      "category": "INFORMATIONAL",
+      "historical_value": "4a176ceecdd04f596e94b81adf0366abef6e6df8",
+      "source": "canonical environment.json",
+      "rationale": "Future code commit necessarily differs; bind current commit plus exact source hashes."
+    }
+  },
+  "image_policy": "exact Id and RepoDigests equality; no version-only substitute",
+  "historical_identity_verdict": "PARTIALLY_RESOLVED",
+  "compatibility_verdict": "BLOCKED_UNDER_FROZEN_V4",
+  "unverified_handling": "record current values separately; never call them historical equality; V4 matched comparison remains blocked",
+  "baseline_power": {
+    "maximum_w": 1.0,
+    "label": "PROVISIONAL_DEVICE_REPORTED_POWER_THRESHOLD",
+    "inclusive": true,
+    "source": "existing boundary payload and characterization constant, not a newly selected threshold"
+  },
+  "required_mqtt_topics": [
+    "ccnc/expiry/v3/command/+",
+    "ccnc/expiry/v3/command/physical_v3_trigger_check",
+    "ccnc/expiry/v3/command/physical_v3_execution_check"
+  ],
+  "automation_modes": {
+    "mqtt_expiry_v3_ingress_probe": "parallel",
+    "mqtt_expiry_v3_trigger_admission": "parallel",
+    "mqtt_expiry_v3_physical_v3_broker_only": "queued",
+    "mqtt_expiry_v3_physical_v3_trigger_check": "queued",
+    "mqtt_expiry_v3_physical_v3_execution_check": "queued",
+    "mqtt_expiry_v3_physical_v3_predictive_admission": "parallel",
+    "mqtt_expiry_v3_predictive_physical_worker": "queued"
+  },
+  "handoff_absence_policy": "GET idle/current=0 and finite quiet interval do not prove no pending internal MQTT handoff; unresolved without complete lifecycle/ownership proof",
+  "loaded_semantics_policy": "local frozen package hash and reported automation mode do not prove loaded action semantics; no reload permitted",
+  "clock_preflight_policy": "no HA template POST; capture archived methodology and require separately authorized fresh clock calibration before acquisition",
+  "stale_state_policy": "no topology helper defined by frozen YAML; unknown experiment helper or observer gap fails closed"
+}

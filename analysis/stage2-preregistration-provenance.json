@@ -1,0 +1,171 @@
+{
+    "schema_version":  1,
+    "artifact_type":  "stage2_preregistration_stop_gate_audit",
+    "status":  "blocked_not_frozen",
+    "acquisition_ready":  false,
+    "stage2_has_been_run":  false,
+    "candidate_experiment":  false,
+    "contains_new_measured_observations":  false,
+    "contains_synthetic_observations":  false,
+    "branch":  "physical-v3-hardening",
+    "inspected_head":  "f3b56e6892d961a36019c03f30d03aa07a028578",
+    "report_sha256":  "69d855a154dd8521a5c25e831d100496344c4e100874708ee83ef7ad96cd4523",
+    "stage2_plan_sha256":  null,
+    "canonical_stage1":  {
+                             "bundle":  "analysis/canonical-stage1-boundary-20260920",
+                             "run_id":  "20260920T185807Z-b978900c",
+                             "acquisition_commit":  "4a176ceecdd04f596e94b81adf0366abef6e6df8",
+                             "bundle_manifest_sha256":  "c735ebec594f09ecf20cf16ef902aad994e8c4b6fae699e797450a019fdaf9ac",
+                             "bundle_hashes":  {
+                                                   "analysis_plan.json":  "97ca7d54b970584996b97bfd285b9a958ab7aeee5755a52174c7eef3d287a86d",
+                                                   "ANALYSIS_REPORT.md":  "6301f6373dd4fcc88725ab856442563db9c424c5d1ae4fcfa7066364e1450ca7",
+                                                   "analysis_summary.json":  "019a41ac1a720819ca2dfb369ee41b38ad09d783cd2118d25a7dd47ada8779a1",
+                                                   "boundary_physical_v3_broker_only.pdf":  "8edde9a2b7594ace0dcb077e95eb9e11f245104c4e7b12ccec61cfa8e4eedf5f",
+                                                   "cell_summary.csv":  "f9b3dd22f5aadd3d7462e3eff31befbfd76eb211d274a45539e7d442ed674c1e",
+                                                   "delay_physical_v3_broker_only.pdf":  "8111a304b8354e902400a2fa13982357d7e1c6f889462c4b4ae05a7d3873bdaa",
+                                                   "environment.json":  "bda8040ccac8b1e7c687b9932c24dd6fe31f1857929ed525a8cb54444463cc9b",
+                                                   "RAW_SHA256SUMS.txt":  "bce9af53e0bf532146b9b4aec427d146e3128ed78e2e00dc469fae3c8bc90778",
+                                                   "run_summary.json":  "e269475b4a20f3fdfede2f5f2c69caca4b09dff647fb94e2b25582a17a5094a9",
+                                                   "STAGE1_RESULT.md":  "60a071aba1566c5f2d88b615f8f5faa314d2d80efd26d43171664888e94ec227",
+                                                   "trials.csv":  "164eb9aede06e33de9ea94eb3e3e3fc21d4f1b2afcefde1b2c5981c239e427dd"
+                                               },
+                             "raw_hashes":  {
+                                                "environment.json":  "bda8040ccac8b1e7c687b9932c24dd6fe31f1857929ed525a8cb54444463cc9b",
+                                                "events.jsonl":  "dcb741cde840dda4c28d090f197939d3c9df52f8d23eb9c61b9320d9350d967e",
+                                                "summary.json":  "e269475b4a20f3fdfede2f5f2c69caca4b09dff647fb94e2b25582a17a5094a9",
+                                                "trials.csv":  "164eb9aede06e33de9ea94eb3e3e3fc21d4f1b2afcefde1b2c5981c239e427dd"
+                                            },
+                             "all_hashes_verified":  true,
+                             "comparator_selection":  {
+                                                          "policy":  "physical_v3_broker_only",
+                                                          "cells":  [
+                                                                        {
+                                                                            "q":  0,
+                                                                            "cell":  "C0",
+                                                                            "ttl_s":  3
+                                                                        },
+                                                                        {
+                                                                            "q":  1,
+                                                                            "cell":  "C1",
+                                                                            "ttl_s":  3
+                                                                        },
+                                                                        {
+                                                                            "q":  1,
+                                                                            "cell":  "C2",
+                                                                            "ttl_s":  6
+                                                                        },
+                                                                        {
+                                                                            "q":  2,
+                                                                            "cell":  "C3",
+                                                                            "ttl_s":  9
+                                                                        },
+                                                                        {
+                                                                            "q":  2,
+                                                                            "cell":  "C4",
+                                                                            "ttl_s":  12
+                                                                        }
+                                                                    ],
+                                                          "reps":  [
+                                                                       1,
+                                                                       2,
+                                                                       3,
+                                                                       4,
+                                                                       5
+                                                                   ],
+                                                          "rows":  25,
+                                                          "original_command_ids":  [
+                                                                                       "20260920T185807Z-b978900c-r1-q0-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r1-q1-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r1-q1-t6-target0",
+                                                                                       "20260920T185807Z-b978900c-r1-q2-t9-target0",
+                                                                                       "20260920T185807Z-b978900c-r1-q2-t12-target0",
+                                                                                       "20260920T185807Z-b978900c-r2-q0-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r2-q1-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r2-q1-t6-target0",
+                                                                                       "20260920T185807Z-b978900c-r2-q2-t9-target0",
+                                                                                       "20260920T185807Z-b978900c-r2-q2-t12-target0",
+                                                                                       "20260920T185807Z-b978900c-r3-q0-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r3-q1-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r3-q1-t6-target0",
+                                                                                       "20260920T185807Z-b978900c-r3-q2-t9-target0",
+                                                                                       "20260920T185807Z-b978900c-r3-q2-t12-target0",
+                                                                                       "20260920T185807Z-b978900c-r4-q0-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r4-q1-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r4-q1-t6-target0",
+                                                                                       "20260920T185807Z-b978900c-r4-q2-t9-target0",
+                                                                                       "20260920T185807Z-b978900c-r4-q2-t12-target0",
+                                                                                       "20260920T185807Z-b978900c-r5-q0-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r5-q1-t3-target0",
+                                                                                       "20260920T185807Z-b978900c-r5-q1-t6-target0",
+                                                                                       "20260920T185807Z-b978900c-r5-q2-t9-target0",
+                                                                                       "20260920T185807Z-b978900c-r5-q2-t12-target0"
+                                                                                   ],
+                                                          "comparison_artifact_created":  false
+                                                      },
+                             "compatibility_evidence":  {
+                                                            "ha_version":  "2026.9.2",
+                                                            "broker_version":  "2.0.22",
+                                                            "mqtt_protocol":  5,
+                                                            "endpoint_entity":  "switch.tapo_p110m",
+                                                            "endpoint_integration":  null,
+                                                            "physical_confirmation_timeout_s":  10,
+                                                            "clock_bound_ms":  250,
+                                                            "measured_clock_bound_ms":  1.9591064453125,
+                                                            "images":  {
+                                                                           "broker":  {
+                                                                                          "Id":  "sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21",
+                                                                                          "RepoDigests":  [
+                                                                                                              "eclipse-mosquitto@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21"
+                                                                                                          ]
+                                                                                      },
+                                                                           "homeassistant":  {
+                                                                                                 "Id":  "sha256:a1bc133af84ee6505fe2c266d9805b7c75b780dfdc188edfee3b11e8f3cd8efe",
+                                                                                                 "RepoDigests":  [
+                                                                                                                     "ghcr.io/home-assistant/home-assistant@sha256:a1bc133af84ee6505fe2c266d9805b7c75b780dfdc188edfee3b11e8f3cd8efe"
+                                                                                                                 ]
+                                                                                             }
+                                                                       },
+                                                            "source_sha256":  {
+                                                                                  "run_v3.py":  "19cc989ebf5dabd7fb559eb59d06733c57d5baf7fa853a1e8eed06e479543046",
+                                                                                  "boundary_v3.py":  "53e758a1345ca040e5e82d796cdc2e0e4cbbc76eaf0c3c82b524befba58bba1f",
+                                                                                  "measurement_v3.py":  "26265a9144f07650faedbb0feb8b05ad7b42d924c1fe0b476058ba889f839dd6",
+                                                                                  "ha/packages/expiry_physical_v3.yaml":  "e9d5fda4398343c98be351ac3187f12aba66fa7db22837efde4405440d029c3b"
+                                                                              }
+                                                        }
+                         },
+    "requested_counts":  {
+                             "acquired_stage2_targets":  0,
+                             "future_targets":  75,
+                             "historical_p0":  25,
+                             "combined":  100
+                         },
+    "p2_audit":  {
+                     "full_fairness_gate_certified":  false,
+                     "constants_first_commit":  "b5853363290131af62a46bfdbec79769aff59d4a",
+                     "service_bound_ms":  8000,
+                     "dispatch_margin_ms":  500,
+                     "formula":  "W(q) = q * 8000 + 500; accept iff decision_at_ms + W(q) \u003c expires_at_ms with YAML metadata guards",
+                     "numeric_derivation_found":  false,
+                     "admission_architecture_commit":  "4ab43a1b576b7dccee6db805e341bfff2f367678",
+                     "posthoc_tuning_performed":  false,
+                     "chronology_passed":  true
+                 },
+    "blockers":  [
+                     "P1 condition failure emits no explicit rejection; decision timestamp not recorded",
+                     "P0 topology validator requires target pre_service and cannot prove rejected-target topology",
+                     "P3 decision timestamp differs from measured pre_service marker and is not recorded"
+                 ],
+    "additional_gaps":  [
+                            "Historical endpoint integration not recorded in canonical environment",
+                            "Stage2 admission input provenance and missing-input tests absent",
+                            "Python and documented local test environments unavailable"
+                        ],
+    "validation":  {
+                       "selected_historical_rows":  25,
+                       "bundle_checks_passed":  11,
+                       "main_tests":  "not_run_python_unavailable",
+                       "python_files_changed":  0,
+                       "optical_tests":  "not_run_shared_utilities_unchanged",
+                       "raw_checks_passed":  4
+                   }
+}

@@ -250,7 +250,7 @@ class V3ConfigurationTests(unittest.TestCase):
 
     def test_v3_ingress_and_four_workers(self):
         automations = self.v3['automation']
-        self.assertEqual(len(automations), 6)
+        self.assertEqual(len(automations), 7)  # Explicit P1 admission gate + existing four workers.
         workers = [item for item in automations if item['mode'] == 'queued']
         self.assertEqual(len(workers), 4)
         self.assertTrue(all(item['mode'] == 'queued' for item in workers))

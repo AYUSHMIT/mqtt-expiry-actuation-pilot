@@ -1,0 +1,49 @@
+{
+  "prior_artifact_sha256": {
+    "analysis/stage2-p0-p1-p3-revision-review.patch": "69d10a915da309d152a3a1821c728c0c2de348527db0711c268b2f968627cc6e",
+    "analysis/stage2-p2-preservation.json": "e14f7a7b93659549f1a4852de03822327e19ccd923d7475aab65d1848627ea4c",
+    "analysis/stage2-p2-provenance-review.patch": "bb8b4894dc36dc25d9bfb2a9ce733e7532b74e28a7ea5ddfb45ac0f1891bfa25",
+    "analysis/stage2-preregistration-provenance.json": "8940886e53bcedb9aa3a9b07a82fbaefb5070df09a9db4db6e2932db380fa2a7",
+    "analysis/stage2-preregistration-review.patch": "dca747df0da1c239b553329cdd57218b9a540bb03bd9d3509b4ad0b5cb6bfc12",
+    "analysis/stage2-preregistration-v2-provenance.json": "fe294aa74c28a81ad7b13f54597cca5087c2213af845032c9b48ef8bf71acc06",
+    "analysis/stage2-preregistration-v3-provenance.json": "9439a643823f739d05c4428c98e5976314d384392ad4fe3528095fac918862fe",
+    "analysis/stage2-preregistration-v4-provenance.json": "d7182950bbddb7cd8ef252b7f1dbb6e8012b9370e1ccf1f848bed1272522ed22",
+    "analysis/stage2-semantic-repair-review.patch": "70bd0f5e625d180c58b1c56077f65edfaf90db2eadc31cd143d6d300aafe3092",
+    "analysis/stage2-v1-preservation.json": "038b2956445a724548849311e9e544d189ced28076b404e980dd9bb5019623b1",
+    "analysis/stage2-v4-preservation.json": "8f1c482f5303865ee50b8d407882e7fd61040c22b7fd06d59c4f64d10f5e616a",
+    "STAGE2_PREREGISTRATION.md": "69d855a154dd8521a5c25e831d100496344c4e100874708ee83ef7ad96cd4523",
+    "STAGE2_PREREGISTRATION_V2.md": "c0f6b397859793089949d22dbf40224c629755590a3541bae404973bfadd9c11",
+    "STAGE2_PREREGISTRATION_V3.md": "fe940e3ae7cd73fe32f963680ff9d633401df3b41389b7a5a10552a48c3c5026",
+    "STAGE2_PREREGISTRATION_V4.md": "15d19ff35dd261e50bff4c2b4f5201dc96555773da2bd8bb9914f580e10b8031"
+  },
+  "frozen_source_sha256": {
+    "stage2_policy_plan_v2.json": "1958bad32d6facbee997ede42a0cfd727458adddabf260a379def25fa9fc1cb0",
+    "ha/packages/expiry_physical_v3.yaml": "8e3ed241170a9ffa07f85445ad5d2e63538c8e10f0a7b17d3851e1f73fb3992f",
+    "measurement_v3.py": "7a5853b925a35212c4372992398a56524c355f26cb2170cd85e88d2c250f6fe8",
+    "stage2_evidence.py": "8ea9ccd83bd4f22f2da698543f9f3681057ee5d5545a5bcb051e7946d645569e",
+    "run_v3.py": "19cc989ebf5dabd7fb559eb59d06733c57d5baf7fa853a1e8eed06e479543046",
+    "boundary_v3.py": "53e758a1345ca040e5e82d796cdc2e0e4cbbc76eaf0c3c82b524befba58bba1f",
+    "stage2_contract.py": "06b52d46cc0dcce8f90628753aaa011de01cfed7c642c23901d7f821f808c051",
+    "stage2_analysis.py": "fff9b6b52d0763dddfc7cc5566543b8f8c7e050c23114b7ff85ba1a1c2142fc8",
+    "stage2_runner.py": "c45a32491f686a6d33f4cdafe30aa8fc1b7c89b421a5ba2d0c88ad83fc1ace62"
+  },
+  "canonical_bundle_sha256": {
+    "analysis/canonical-stage1-boundary-20260920/analysis_plan.json": "97ca7d54b970584996b97bfd285b9a958ab7aeee5755a52174c7eef3d287a86d",
+    "analysis/canonical-stage1-boundary-20260920/ANALYSIS_REPORT.md": "6301f6373dd4fcc88725ab856442563db9c424c5d1ae4fcfa7066364e1450ca7",
+    "analysis/canonical-stage1-boundary-20260920/analysis_summary.json": "019a41ac1a720819ca2dfb369ee41b38ad09d783cd2118d25a7dd47ada8779a1",
+    "analysis/canonical-stage1-boundary-20260920/boundary_physical_v3_broker_only.pdf": "8edde9a2b7594ace0dcb077e95eb9e11f245104c4e7b12ccec61cfa8e4eedf5f",
+    "analysis/canonical-stage1-boundary-20260920/cell_summary.csv": "f9b3dd22f5aadd3d7462e3eff31befbfd76eb211d274a45539e7d442ed674c1e",
+    "analysis/canonical-stage1-boundary-20260920/delay_physical_v3_broker_only.pdf": "8111a304b8354e902400a2fa13982357d7e1c6f889462c4b4ae05a7d3873bdaa",
+    "analysis/canonical-stage1-boundary-20260920/environment.json": "bda8040ccac8b1e7c687b9932c24dd6fe31f1857929ed525a8cb54444463cc9b",
+    "analysis/canonical-stage1-boundary-20260920/RAW_SHA256SUMS.txt": "bce9af53e0bf532146b9b4aec427d146e3128ed78e2e00dc469fae3c8bc90778",
+    "analysis/canonical-stage1-boundary-20260920/run_summary.json": "e269475b4a20f3fdfede2f5f2c69caca4b09dff647fb94e2b25582a17a5094a9",
+    "analysis/canonical-stage1-boundary-20260920/STAGE1_RESULT.md": "60a071aba1566c5f2d88b615f8f5faa314d2d80efd26d43171664888e94ec227",
+    "analysis/canonical-stage1-boundary-20260920/trials.csv": "164eb9aede06e33de9ea94eb3e3e3fc21d4f1b2afcefde1b2c5981c239e427dd"
+  },
+  "canonical_raw_sha256": {
+    "results-v3-boundary/20260920T185807Z-b978900c/environment.json": "bda8040ccac8b1e7c687b9932c24dd6fe31f1857929ed525a8cb54444463cc9b",
+    "results-v3-boundary/20260920T185807Z-b978900c/events.jsonl": "dcb741cde840dda4c28d090f197939d3c9df52f8d23eb9c61b9320d9350d967e",
+    "results-v3-boundary/20260920T185807Z-b978900c/summary.json": "e269475b4a20f3fdfede2f5f2c69caca4b09dff647fb94e2b25582a17a5094a9",
+    "results-v3-boundary/20260920T185807Z-b978900c/trials.csv": "164eb9aede06e33de9ea94eb3e3e3fc21d4f1b2afcefde1b2c5981c239e427dd"
+  }
+}

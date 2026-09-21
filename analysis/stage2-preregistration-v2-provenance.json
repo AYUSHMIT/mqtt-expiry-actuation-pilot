@@ -1,0 +1,144 @@
+{
+    "schema_version":  2,
+    "artifact_type":  "offline_semantic_repair_audit",
+    "status":  "blocked_p2_provenance",
+    "acquisition_ready":  false,
+    "stage2_has_been_run":  false,
+    "stage2_plan_changed":  false,
+    "measured_stage2_targets":  0,
+    "contains_synthetic_results":  false,
+    "branch":  "physical-v3-hardening",
+    "inspected_head":  "f3b56e6892d961a36019c03f30d03aa07a028578",
+    "original_audit_sha256":  {
+                                  "STAGE2_PREREGISTRATION.md":  "69d855a154dd8521a5c25e831d100496344c4e100874708ee83ef7ad96cd4523",
+                                  "analysis/stage2-preregistration-provenance.json":  "8940886e53bcedb9aa3a9b07a82fbaefb5070df09a9db4db6e2932db380fa2a7",
+                                  "analysis/stage2-preregistration-review.patch":  "dca747df0da1c239b553329cdd57218b9a540bb03bd9d3509b4ad0b5cb6bfc12"
+                              },
+    "canonical_stage1":  {
+                             "run_id":  "20260920T185807Z-b978900c",
+                             "bundle":  "analysis/canonical-stage1-boundary-20260920",
+                             "bundle_hashes":  {
+                                                   "analysis_plan.json":  "97ca7d54b970584996b97bfd285b9a958ab7aeee5755a52174c7eef3d287a86d",
+                                                   "ANALYSIS_REPORT.md":  "6301f6373dd4fcc88725ab856442563db9c424c5d1ae4fcfa7066364e1450ca7",
+                                                   "analysis_summary.json":  "019a41ac1a720819ca2dfb369ee41b38ad09d783cd2118d25a7dd47ada8779a1",
+                                                   "boundary_physical_v3_broker_only.pdf":  "8edde9a2b7594ace0dcb077e95eb9e11f245104c4e7b12ccec61cfa8e4eedf5f",
+                                                   "cell_summary.csv":  "f9b3dd22f5aadd3d7462e3eff31befbfd76eb211d274a45539e7d442ed674c1e",
+                                                   "delay_physical_v3_broker_only.pdf":  "8111a304b8354e902400a2fa13982357d7e1c6f889462c4b4ae05a7d3873bdaa",
+                                                   "environment.json":  "bda8040ccac8b1e7c687b9932c24dd6fe31f1857929ed525a8cb54444463cc9b",
+                                                   "RAW_SHA256SUMS.txt":  "bce9af53e0bf532146b9b4aec427d146e3128ed78e2e00dc469fae3c8bc90778",
+                                                   "run_summary.json":  "e269475b4a20f3fdfede2f5f2c69caca4b09dff647fb94e2b25582a17a5094a9",
+                                                   "STAGE1_RESULT.md":  "60a071aba1566c5f2d88b615f8f5faa314d2d80efd26d43171664888e94ec227",
+                                                   "trials.csv":  "164eb9aede06e33de9ea94eb3e3e3fc21d4f1b2afcefde1b2c5981c239e427dd"
+                                               },
+                             "raw_hashes":  {
+                                                "environment.json":  "bda8040ccac8b1e7c687b9932c24dd6fe31f1857929ed525a8cb54444463cc9b",
+                                                "events.jsonl":  "dcb741cde840dda4c28d090f197939d3c9df52f8d23eb9c61b9320d9350d967e",
+                                                "summary.json":  "e269475b4a20f3fdfede2f5f2c69caca4b09dff647fb94e2b25582a17a5094a9",
+                                                "trials.csv":  "164eb9aede06e33de9ea94eb3e3e3fc21d4f1b2afcefde1b2c5981c239e427dd"
+                                            },
+                             "verified":  true
+                         },
+    "verdicts":  {
+                     "p1":  "RESOLVED_OFFLINE",
+                     "p2_provenance":  "BLOCKED",
+                     "topology_validator":  "RESOLVED_OFFLINE_P1_P3",
+                     "p3":  "RESOLVED_OFFLINE"
+                 },
+    "p2":  {
+               "formula":  "W(q) = q * 8000 + 500 ms; accept iff decision_at_ms + W(q) \u003c expires_at_ms",
+               "service_bound_ms":  8000,
+               "dispatch_margin_ms":  500,
+               "introducing_commit":  "b5853363290131af62a46bfdbec79769aff59d4a",
+               "introducing_date":  "2026-09-19T12:29:11-04:00",
+               "admission_architecture_commit":  "4ab43a1b576b7dccee6db805e341bfff2f367678",
+               "admission_architecture_date":  "2026-09-19T15:18:45-04:00",
+               "predates_canonical_stage1":  true,
+               "later_constant_changes_found":  false,
+               "q_source":  "untrusted_trigger.payload_json.queue_depth_ahead",
+               "independent_admission_q_proof":  false,
+               "future_inputs_read":  false,
+               "retuned":  false,
+               "omission_requires_formal_revision":  true
+           },
+    "unchanged_design":  {
+                             "repetitions":  5,
+                             "pulse_s":  5,
+                             "new_targets":  75,
+                             "pulse_tolerance_ms":  250,
+                             "clock_bound_ms":  250,
+                             "combined":  100,
+                             "historical_p0":  25,
+                             "physical_confirmation_timeout_s":  10,
+                             "cells":  [
+                                           {
+                                               "q":  0,
+                                               "cell":  "C0",
+                                               "ttl_s":  3
+                                           },
+                                           {
+                                               "q":  1,
+                                               "cell":  "C1",
+                                               "ttl_s":  3
+                                           },
+                                           {
+                                               "q":  1,
+                                               "cell":  "C2",
+                                               "ttl_s":  6
+                                           },
+                                           {
+                                               "q":  2,
+                                               "cell":  "C3",
+                                               "ttl_s":  9
+                                           },
+                                           {
+                                               "q":  2,
+                                               "cell":  "C4",
+                                               "ttl_s":  12
+                                           }
+                                       ],
+                             "classification_margin_ms":  1000
+                         },
+    "evidence_contract":  {
+                              "decision_dispatch_gap_max_ms":  250,
+                              "version":  2,
+                              "p1_decision_stage":  "trigger_freshness_decision",
+                              "p3_capture_to_on_service_gap_max_ms":  250,
+                              "p3_decision_stage":  "execution_freshness_decision",
+                              "required_future_event_types":  [
+                                                                  "expiry_v3_received",
+                                                                  "expiry_v3_stage",
+                                                                  "expiry_v3_trigger_accepted",
+                                                                  "call_service",
+                                                                  "state_changed"
+                                                              ],
+                              "gap_interpretation":  "offline validity limit using existing clock allowance, not a scheduler guarantee"
+                          },
+    "repaired_source_sha256":  {
+                                   "ha/packages/expiry_physical_v3.yaml":  "8e3ed241170a9ffa07f85445ad5d2e63538c8e10f0a7b17d3851e1f73fb3992f",
+                                   "measurement_v3.py":  "7a5853b925a35212c4372992398a56524c355f26cb2170cd85e88d2c250f6fe8",
+                                   "stage2_evidence.py":  "8ea9ccd83bd4f22f2da698543f9f3681057ee5d5545a5bcb051e7946d645569e",
+                                   "tests/test_stage2_semantics.py":  "3783fe6b7455b0aaeaf223a863ed0f38cf01e2121ddf06d3828ac84d96b0f605",
+                                   "tests/test_measurement_v3.py":  "2521162735eb1fe5fd8937e69a95729277894d082406d30722cee3887df80ea5",
+                                   "tests/test_physical_confirmation_timeout.py":  "5399bd865a9d7e38b8b3674219409f2981eecc274521cb1cf56c0b2a0f706f50",
+                                   "STAGE2_PREREGISTRATION_V2.md":  "c0f6b397859793089949d22dbf40224c629755590a3541bae404973bfadd9c11",
+                                   "analysis/stage2-v1-preservation.json":  "038b2956445a724548849311e9e544d189ced28076b404e980dd9bb5019623b1"
+                               },
+    "validation":  {
+                       "new_tests":  41,
+                       "canonical_raw_checks":  4,
+                       "py_compile":  "passed",
+                       "py_compile_files":  5,
+                       "main_tests_passed":  176,
+                       "optical_tests":  "not_run_optical_code_unchanged",
+                       "git_diff_check":  "passed",
+                       "preserved_v1_checks":  3,
+                       "live_access":  false,
+                       "canonical_bundle_checks":  11
+                   },
+    "unresolved":  [
+                       "P2 admission q provenance",
+                       "Stage2 acquisition observer/preflight and terminal pending-work proof",
+                       "Deployment and environment compatibility review",
+                       "Complete preregistration/acquisition contract"
+                   ]
+}

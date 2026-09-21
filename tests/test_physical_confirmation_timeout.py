@@ -1,5 +1,4 @@
 """Offline YAML contract checks; no HA, MQTT, Docker or device access."""
-import copy
 import hashlib
 import inspect
 import json
@@ -33,21 +32,17 @@ class PhysicalConfirmationTimeoutTests(unittest.TestCase):
         self.assertEqual(r.PULSE_S, 5)
         self.assertNotEqual(r.PULSE_S, r.PHYSICAL_CONFIRMATION_TIMEOUT_S)
 
-    def test_only_eight_timeout_values_differ_from_frozen_yaml(self):
-        # Canonical parsed YAML fingerprint before this repair, at fd04988.
-        # Restoring just the eight old timeouts must recover the ENTIRE document:
-        # policy conditions, admission gate, rejection paths, payloads and order.
-        original = copy.deepcopy(self.config)
-        changed = 0
-        for automation in original['automation']:
-            for action in automation['actions']:
-                if 'wait_template' in action:
-                    self.assertEqual(action['timeout'], '00:00:10')
-                    action['timeout'] = '00:00:05'
-                    changed += 1
-        self.assertEqual(changed, 8)
-        fingerprint = hashlib.sha256(json.dumps(original, sort_keys=True).encode()).hexdigest()
-        self.assertEqual(fingerprint, 'a2a82224008f9eb88675b2cfde0a7357bb4091aa4781164d951a82ac792986d6')
+    def test_p0_p2_unchanged_by_p1_p3_semantic_repair(self):
+        # Parsed fingerprints from f3b56e6. P1/P3 intentionally change in v2;
+        # every wait/hold on all four workers remains checked by tests above.
+        frozen = {
+            'mqtt_expiry_v3_physical_v3_broker_only': 'e433860f410162b5867f99c5ec6f512f5881e3558ef1f56a3073fb667fa6610f',
+            'mqtt_expiry_v3_physical_v3_predictive_admission': '32cbb2f8e033a13f75ae3ce0a60658500f5b50dd0f099493d8693b961cb518c4',
+            'mqtt_expiry_v3_predictive_physical_worker': '941963dbff4cba3a28ded46a77113635c7e06d2b62fa28f6f88d07b31d042e06',
+        }
+        for aid, expected in frozen.items():
+            automation = next(a for a in self.config['automation'] if a['id'] == aid)
+            self.assertEqual(hashlib.sha256(json.dumps(automation, sort_keys=True).encode()).hexdigest(), expected)
 
     def test_broker_only_exact_sequence(self):
         worker = next(a for a in self.workers if a['id'] == b.WORKER_ID)

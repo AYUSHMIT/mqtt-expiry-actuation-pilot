@@ -88,32 +88,72 @@ automation:
       expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
   trace:
     stored_traces: 100
+- id: mqtt_expiry_v3_trigger_admission
+  alias: MQTT Expiry V3 Trigger Freshness Admission
+  mode: parallel
+  max: 100
+  triggers:
+  - trigger: mqtt
+    topic: ccnc/expiry/v3/command/physical_v3_trigger_check
+    qos: 1
+  actions:
+  - variables:
+      decision_at_ms: '{{ as_timestamp(now()) * 1000 }}'
+      deadline_ms: '{{ trigger.payload_json.expires_at_ms | float(0) }}'
+  - variables:
+      admission_accepted: '{{ decision_at_ms < deadline_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      evidence_version: 2
+      command_id: '{{ trigger.payload_json.command_id }}'
+      policy: physical_v3_trigger_check
+      stage: trigger_freshness_decision
+      expires_at_ms: '{{ deadline_ms }}'
+      decision_at_ms: '{{ decision_at_ms }}'
+      accepted: '{{ admission_accepted }}'
+      reason: '{{ "" if admission_accepted else "trigger_check" }}'
+  - if:
+    - condition: template
+      value_template: '{{ not admission_accepted }}'
+    then:
+    - event: expiry_v3_stage
+      event_data:
+        evidence_version: 2
+        command_id: '{{ trigger.payload_json.command_id }}'
+        policy: physical_v3_trigger_check
+        stage: rejected
+        reason: trigger_check
+        decision_at_ms: '{{ decision_at_ms }}'
+        expires_at_ms: '{{ deadline_ms }}'
+    - stop: rejected at trigger freshness decision
+  - event: expiry_v3_trigger_accepted
+    event_data:
+      command: '{{ trigger.payload_json }}'
+      decision_at_ms: '{{ decision_at_ms }}'
+  trace:
+    stored_traces: 100
 - id: mqtt_expiry_v3_physical_v3_trigger_check
   alias: MQTT Expiry V3 Trigger Check
   mode: queued
   max: 10
   triggers:
-  - trigger: mqtt
-    topic: ccnc/expiry/v3/command/physical_v3_trigger_check
-    qos: 1
-  conditions:
-  - condition: template
-    value_template: '{{ (as_timestamp(now()) * 1000) < (trigger.payload_json.expires_at_ms | float(0)) }}'
+  - trigger: event
+    event_type: expiry_v3_trigger_accepted
   actions:
   - event: expiry_v3_stage
     event_data:
-      command_id: '{{ trigger.payload_json.command_id }}'
+      command_id: '{{ trigger.event.data.command.command_id }}'
       case: physical_v3_trigger_check
       policy: physical_v3_trigger_check
       stage: trigger_check
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      expires_at_ms: '{{ trigger.event.data.command.expires_at_ms }}'
   - event: expiry_v3_stage
     event_data:
-      command_id: '{{ trigger.payload_json.command_id }}'
+      command_id: '{{ trigger.event.data.command.command_id }}'
       case: physical_v3_trigger_check
       policy: physical_v3_trigger_check
       stage: pre_service
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      expires_at_ms: '{{ trigger.event.data.command.expires_at_ms }}'
   - action: switch.turn_on
     target:
       entity_id: switch.tapo_p110m
@@ -122,20 +162,20 @@ automation:
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
-      command_id: '{{ trigger.payload_json.command_id }}'
+      command_id: '{{ trigger.event.data.command.command_id }}'
       case: physical_v3_trigger_check
       policy: physical_v3_trigger_check
       stage: on_confirmed
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      expires_at_ms: '{{ trigger.event.data.command.expires_at_ms }}'
   - delay:
       seconds: 5
   - event: expiry_v3_stage
     event_data:
-      command_id: '{{ trigger.payload_json.command_id }}'
+      command_id: '{{ trigger.event.data.command.command_id }}'
       case: physical_v3_trigger_check
       policy: physical_v3_trigger_check
       stage: off_request
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      expires_at_ms: '{{ trigger.event.data.command.expires_at_ms }}'
   - action: switch.turn_off
     target:
       entity_id: switch.tapo_p110m
@@ -144,18 +184,18 @@ automation:
     continue_on_timeout: false
   - event: expiry_v3_stage
     event_data:
-      command_id: '{{ trigger.payload_json.command_id }}'
+      command_id: '{{ trigger.event.data.command.command_id }}'
       case: physical_v3_trigger_check
       policy: physical_v3_trigger_check
       stage: off_confirmed
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      expires_at_ms: '{{ trigger.event.data.command.expires_at_ms }}'
   - event: expiry_v3_stage
     event_data:
-      command_id: '{{ trigger.payload_json.command_id }}'
+      command_id: '{{ trigger.event.data.command.command_id }}'
       case: physical_v3_trigger_check
       policy: physical_v3_trigger_check
       stage: finished
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+      expires_at_ms: '{{ trigger.event.data.command.expires_at_ms }}'
   trace:
     stored_traces: 100
 - id: mqtt_expiry_v3_physical_v3_predictive_admission
@@ -287,33 +327,38 @@ automation:
     topic: ccnc/expiry/v3/command/physical_v3_execution_check
     qos: 1
   actions:
+  - variables:
+      decision_at_ms: '{{ as_timestamp(now()) * 1000 }}'
+      deadline_ms: '{{ trigger.payload_json.expires_at_ms | float(0) }}'
+  - variables:
+      execution_accepted: '{{ decision_at_ms < deadline_ms }}'
+  - event: expiry_v3_stage
+    event_data:
+      evidence_version: 2
+      command_id: '{{ trigger.payload_json.command_id }}'
+      case: physical_v3_execution_check
+      policy: physical_v3_execution_check
+      stage: execution_freshness_decision
+      decision_at_ms: '{{ decision_at_ms }}'
+      boundary_at_ms: '{{ decision_at_ms }}'
+      expires_at_ms: '{{ deadline_ms }}'
+      accepted: '{{ execution_accepted }}'
+      reason: '{{ "" if execution_accepted else "execution_check" }}'
   - if:
     - condition: template
-      value_template: '{{ (as_timestamp(now()) * 1000) >= (trigger.payload_json.expires_at_ms | float(0)) }}'
+      value_template: '{{ not execution_accepted }}'
     then:
     - event: expiry_v3_stage
       event_data:
+        evidence_version: 2
         command_id: '{{ trigger.payload_json.command_id }}'
         case: physical_v3_execution_check
         policy: physical_v3_execution_check
         stage: rejected
         reason: execution_check
-        expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
-    - stop: application deadline expired immediately before service
-  - event: expiry_v3_stage
-    event_data:
-      command_id: '{{ trigger.payload_json.command_id }}'
-      case: physical_v3_execution_check
-      policy: physical_v3_execution_check
-      stage: trigger_check
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
-  - event: expiry_v3_stage
-    event_data:
-      command_id: '{{ trigger.payload_json.command_id }}'
-      case: physical_v3_execution_check
-      policy: physical_v3_execution_check
-      stage: pre_service
-      expires_at_ms: '{{ trigger.payload_json.expires_at_ms }}'
+        decision_at_ms: '{{ decision_at_ms }}'
+        expires_at_ms: '{{ deadline_ms }}'
+    - stop: REJECTED_EXECUTION_STALE
   - action: switch.turn_on
     target:
       entity_id: switch.tapo_p110m
