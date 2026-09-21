@@ -11,6 +11,7 @@ from stage2_contract import (ROOT, PLAN_SHA256, EVENT_TYPES, P1, P3, load_plan,
                              require, order_digest, ORDER_SHA256)
 from stage2_evidence import WORKERS
 from stage2_lifecycle import require_ready
+from run_v3 import PHYSICAL_CONFIRMATION_TIMEOUT_S
 
 FIELDS = ['command_id', 'rep', 'cell', 'policy', 'source', 'queue_depth', 'ttl_s',
           'issued_at_ms', 'expires_at_ms', 'received_at_ms', 'policy_decision_at_ms',
@@ -50,7 +51,7 @@ class Stage2Runner(BoundaryRunner):
     def events(self):
         return self.observer.snapshot(self.event_start, {'ha_event'})
 
-    def state(self, *, expected_current=None, safe=False):
+    def state(self, *, expected_current=None, safe=False, settling=False):
         from stage2_lifecycle import P2_IDS
         import math
         states = self.runtime.reader.get('states')
@@ -64,7 +65,8 @@ class Stage2Runner(BoundaryRunner):
         power = one('sensor.tapo_p110m_current_consumption')
         watts = float(power['state'])
         require(power['attributes'].get('unit_of_measurement') == 'W' and math.isfinite(watts)
-                and watts >= 0 and (not safe or watts <= 1), 'Unsafe/unavailable power')
+                and watts >= 0 and (not safe or settling or watts <= 1), 'Unsafe/unavailable power')
+        self.power_w = watts
         current = None
         for aid, mode in self.modes.items():
             matches = [s for s in states if s.get('attributes', {}).get('id') == aid]
@@ -86,6 +88,68 @@ class Stage2Runner(BoundaryRunner):
                         'Other experiment worker busy')
         require(current is not None and (expected_current is None or current == expected_current), 'Queue count mismatch')
         return current, endpoint
+
+    def settle_terminal(self, cid, row):
+        """Observation only, after terminal ownership validation; never repairs state."""
+        start = self.clock.monotonic()
+        deadline = start + PHYSICAL_CONFIRMATION_TIMEOUT_S
+        evidence = dict(command_id=cid, start_at_ms=self.clock.time()*1000,
+                        budget_s=PHYSICAL_CONFIRMATION_TIMEOUT_S, readings=[], status='PENDING')
+        row['terminal_settling'] = evidence
+        cursor = self.observer.row_count()
+        self.observer._record(dict(kind='stage2_settling_start', **evidence))
+        try:
+            while True:
+                self.runtime.check_events(self.known)
+                require(not getattr(self.pub, 'error', None), 'Publisher lost connection')
+                self.state(expected_current=0, safe=True, settling=True)
+                # Reject even brief contradictory activity between state polls.
+                observed = self.observer.snapshot(cursor)
+                cursor += len(observed)
+                for item in observed:
+                    if item.get('kind') != 'ha_event':
+                        continue
+                    event = item['event']
+                    data = event.get('data', {})
+                    if event.get('event_type') == 'call_service' and data.get('domain') == 'switch':
+                        entities = data.get('service_data', {}).get('entity_id') or []
+                        require('switch.tapo_p110m' not in entities, 'Endpoint service during settling')
+                    if event.get('event_type') == 'state_changed':
+                        state = data.get('new_state') or {}
+                        attrs = state.get('attributes', {})
+                        if data.get('entity_id') == 'switch.tapo_p110m':
+                            require(state.get('state') == 'off', 'Endpoint activity during settling')
+                        if data.get('entity_id') == 'sensor.tapo_p110m_current_consumption':
+                            import math
+                            watts = float(state.get('state'))
+                            require(math.isfinite(watts) and watts >= 0 and attrs.get('unit_of_measurement') == 'W',
+                                    'Invalid power telemetry during settling')
+                        aid = str(attrs.get('id', ''))
+                        if aid.startswith('mqtt_expiry_'):
+                            require(type(attrs.get('current')) is int and attrs['current'] == 0,
+                                    'Worker activity during settling')
+                            if aid in self.modes:
+                                from stage2_lifecycle import P2_IDS
+                                require(state.get('state') == ('off' if aid in P2_IDS else 'on'),
+                                        'Automation state changed during settling')
+                elapsed = self.clock.monotonic()-start
+                reading = dict(at_ms=self.clock.time()*1000, elapsed_s=elapsed,
+                               power_w=self.power_w, status='BASELINE' if self.power_w <= 1 else 'PENDING')
+                evidence['readings'].append(reading)
+                self.observer._record(dict(kind='stage2_settling_reading', command_id=cid, **reading))
+                require(self.clock.monotonic() <= deadline, 'Terminal power settling timeout')
+                if self.power_w <= 1:
+                    evidence['status'] = 'BASELINE_OBSERVED'
+                    break
+                require(self.clock.monotonic() < deadline, 'Terminal power settling timeout')
+                self.clock.sleep(min(.1, deadline-self.clock.monotonic()))
+        except (Exception, KeyboardInterrupt) as exc:
+            evidence.update(status='FAILED', failure_reason=str(exc) or 'Interrupted')
+            raise
+        finally:
+            evidence['end_at_ms'] = self.clock.time()*1000
+            self.observer._record(dict(kind='stage2_settling_end', **evidence))
+        return evidence
 
     def guard(self):
         self.runtime.check_events(self.known)
@@ -157,7 +221,8 @@ class Stage2Runner(BoundaryRunner):
                   and (stage_events(self.events(), cid, 'finished')
                        or stage_events(self.events(), cid, 'rejected')))
         self.wait(lambda: self.state()[0] == 0, timeout=5)
-        self.state(expected_current=0, safe=True)
+        self.observer.validate_terminal(target, blockers, before, since=self.event_start)
+        settling = self.settle_terminal(cid, row)
         end = self.clock.monotonic()+.25
         while self.clock.monotonic() < end:
             self.guard()
@@ -180,7 +245,7 @@ class Stage2Runner(BoundaryRunner):
                       blockers=list(blockers), before=before,
                       begin=safe(min([wall0*1000, *event_times])),
                       end=safe(max([self.clock.time()*1000, *event_times])),
-                      observer_healthy=True, event_types=sorted(EVENT_TYPES))
+                      observer_healthy=True, event_types=sorted(EVENT_TYPES), terminal_settling=settling)
         row.update(result, policy_decision='ACCEPTED' if result['policy_accepted'] else 'REJECTED',
                    evidence_valid=True, failure_reason=None)
         if row['outcome'] == 'REJECTED_TRIGGER_CHECK':
@@ -230,6 +295,44 @@ def execute(plan, runtime, publisher, run_id, out, *, runner_factory=Stage2Runne
     return rows, records, error
 
 
+def acquisition_preflight_metadata(current):
+    """Preserve the original read-only verdict within its actual phase."""
+    phase_fields = ('passed', 'passed_scope', 'physical_actuation', 'acquisition_ready',
+                    'candidate_experiment', 'clock_validation')
+    return {**{k: v for k, v in current.items() if k not in phase_fields},
+            'preflight_phase': {k: current[k] for k in phase_fields if k in current}}
+
+
+def actuation_metadata(journal, *, error, complete):
+    """Counts describe recorded attempts/HA evidence, never independent contact timing."""
+    counts = dict(command_intents=0, mqtt_publish_attempts=0, target_publish_attempts=0,
+                  mqtt_pubacks=0, ha_on_service_events=0, ha_off_service_events=0,
+                  ha_on_transitions=0, ha_off_transitions=0)
+    for row in journal:
+        kind = row.get('kind')
+        if kind == 'stage2_command_intent':
+            counts['command_intents'] += 1
+        elif kind == 'mqtt_publish':
+            counts['mqtt_publish_attempts'] += 1
+            counts['target_publish_attempts'] += row.get('payload', {}).get('role') == 'target'
+        elif kind == 'mqtt_puback':
+            counts['mqtt_pubacks'] += 1
+        event = row.get('event', {})
+        data = event.get('data', {})
+        entities = data.get('service_data', {}).get('entity_id') or []
+        if event.get('event_type') == 'call_service' and data.get('domain') == 'switch' and 'switch.tapo_p110m' in entities:
+            for state in ('on', 'off'):
+                counts['ha_'+state+'_service_events'] += data.get('service') == 'turn_'+state
+        if event.get('event_type') == 'state_changed' and data.get('entity_id') == 'switch.tapo_p110m':
+            old, new = data.get('old_state') or {}, data.get('new_state') or {}
+            for state in ('on', 'off'):
+                counts['ha_'+state+'_transitions'] += new.get('state') == state and old.get('state') != state
+    return dict(acquisition_phase='ABORTED' if error else ('COMPLETED' if complete else 'INCOMPLETE'),
+                actuation_evidence=counts, independent_physical_effect_verified=False,
+                independent_optical_verification=False,
+                actuation_evidence_scope='Recorded MQTT attempts/PUBACK and HA service/state evidence only; no contact-closure proof')
+
+
 def acquire(prepared, previous, expected_commit, volume, *, output_root=None):
     from stage2_runtime import Runtime, Publisher
     plan = load_plan(expected_sha256=PLAN_SHA256)
@@ -256,7 +359,7 @@ def acquire(prepared, previous, expected_commit, volume, *, output_root=None):
         runtime = Runtime(prepared, expected_commit, volume, out/'events.jsonl')
         current = runtime.start()
         bind_preflight(previous, current)
-        env.update(current)
+        env.update(acquisition_preflight_metadata(current))
         env.update(current['environment'])
         env['source_sha256'] = plan['compatibility']['required_stage2_source_sha256']
         env['deployment_source_sha256'] = current['repository']['source_sha256']
@@ -303,6 +406,9 @@ def acquire(prepared, previous, expected_commit, volume, *, output_root=None):
                        observed=sum(bool(r.get('command_id')) for r in rows),
                        valid=sum(r.get('evidence_valid') is True for r in rows), invalid_reason=error,
                        all_trials_valid=error is None and len(records) == 50)
+        with (out/'events.jsonl').open(encoding='utf-8') as journal:
+            env.update(actuation_metadata((json.loads(line) for line in journal if line.strip()),
+                                          error=error, complete=summary['all_trials_valid']))
         acquisition = dict(schema='STAGE2-ACQUISITION-2', plan_sha256=PLAN_SHA256,
                            run_id=run_id, measured=True, candidate_experiment=True,
                            synthetic_fixture_only=False, environment=env, records=records)

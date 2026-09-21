@@ -18,7 +18,8 @@ P2_IDS = {'mqtt_expiry_v3_physical_v3_predictive_admission',
           'mqtt_expiry_v3_predictive_physical_worker'}
 P2_TOPIC = 'ccnc/expiry/v3/internal/predictive_accepted'
 DEPLOYMENT_FILES = ['compose.stage2.yaml', 'ha/stage2/expiry_physical_v3.yaml',
-                    'stage2_lifecycle.py', 'stage2_runtime.py', 'stage2_backend.py', 'stage2_runner.py']
+                    'stage2_lifecycle.py', 'stage2_runtime.py', 'stage2_backend.py', 'stage2_runner.py',
+                    'stage2_dependencies.py', 'requirements.txt', 'stage2_preflight_pinned.ps1']
 ISOLATION = ('Experiment owns the isolated loopback broker; no unmodeled publisher '
              'is authorized to publish commands or the internal P2 topic during Stage 2.')
 

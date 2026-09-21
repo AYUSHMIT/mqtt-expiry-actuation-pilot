@@ -177,6 +177,7 @@ class Simulation:
         assert route=='states'
         self.flush();snap=snapshot()['states']
         snap[0]['state']='on' if self.fault=='unsafe' else self.endpoint
+        snap[1]['state']='7.5' if self.endpoint=='on' else '0'
         if self.fault=='power':snap[1]['state']='1.01'
         for state in snap[2:]:
             aid=state['attributes']['id']

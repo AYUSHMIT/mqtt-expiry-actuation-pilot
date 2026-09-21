@@ -186,6 +186,8 @@ class Runtime:
         self.context_owners = {}
 
     def inspect(self):
+        from stage2_dependencies import require_dependencies
+        dependencies = require_dependencies()  # Before any live metadata/transport access.
         repo = source_evidence(self.commit)
         snap, logs = collect_live(self.reader, self.docker)
         self.docker.verify_files(snap['containers'])
@@ -207,6 +209,7 @@ class Runtime:
             current[key] = spec['fields'][key]['historical_value']
         verdict = compatibility(spec, current)
         require(verdict['decision'] == 'COMPATIBLE_WITH_DISCLOSED_LIMITATIONS', 'Material compatibility failure')
+        current['runtime_dependencies'] = dependencies
         return dict(lifecycle=lifecycle, repository=repo, environment=current, compatibility=verdict,
                     containers=snap['containers'], checks=checks, selected_epoch=result['selected_epoch'],
                     p2_states={aid: 'off' for aid in P2_IDS}, plan_sha256=PLAN_SHA256,

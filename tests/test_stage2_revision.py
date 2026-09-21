@@ -63,6 +63,9 @@ def acquisition():
     env = copy.deepcopy(p['compatibility'])
     env['source_sha256'] = env.pop('required_stage2_source_sha256')
     env['documented_differences'] = env['allowed_documented_differences']
+    # Runtime exports all compatibility fields, including observed sensor units.
+    from stage2_readiness import load_spec
+    env.update({k: copy.deepcopy(v['historical_value']) for k, v in load_spec()['fields'].items()})
     return dict(schema='STAGE2-ACQUISITION-2', plan_sha256=c.PLAN_SHA256, run_id='SYNTHETIC-V4',
                 synthetic_fixture_only=True, measured=False, candidate_experiment=False,
                 environment=env, records=[record(e) for e in p['execution_order']])
@@ -179,8 +182,8 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(sum(r['analysis_valid'] for r in combined),75)
         self.assertEqual([sum(r['source']==s for r in combined) for s in ('canonical_stage1','stage2_acquisition')],[25,50])
         self.assertEqual(len(cells),15);self.assertEqual(len(policies),3)
-        self.assertTrue(any(x.get('issue')=='UNRESOLVED_HISTORICAL_IDENTITY' for x in issues))
-        self.assertTrue(all(r['late_fraction_headline'] is None for r in policies))
+        self.assertEqual(issues, [])
+        self.assertTrue(all(r['fractions_available'] for r in policies))
 
     def test_missing_duplicate_p2_wrong_cell_rep_and_order_rejected(self):
         for fault in ('missing','duplicate','p2','cell','rep','order'):

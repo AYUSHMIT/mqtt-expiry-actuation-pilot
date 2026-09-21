@@ -12,6 +12,7 @@ from stage2_contract import (ROOT, PLAN_PATH, PLAN_SHA256, TRIALS_SHA256, P0, P1
     load_plan, require, sha256)
 from stage2_evidence import validate_target, EvidenceError
 from measurement_v3 import utc_ms
+from stage2_readiness import compatibility, load_spec, historical_comparator
 
 O = 'ON_TIME_PRE_SERVICE'
 L = 'LATE_PRE_SERVICE'
@@ -19,6 +20,21 @@ B = 'BOUNDARY_EXCLUDE_FROM_HEADLINE'
 R1 = 'REJECTED_TRIGGER_STALE'
 R3 = 'REJECTED_EXECUTION_STALE'
 GOOD = {O, L, B, R1, R3}
+
+
+def descriptive_compatibility(plan, environment):
+    """Current descriptive analysis; the frozen helper remains legacy matched-only."""
+    verdict = compatibility(load_spec(), environment)
+    issues = [issue for issue in compatibility_issues(plan, environment)
+              if issue.get('issue') != 'UNRESOLVED_HISTORICAL_IDENTITY']
+    for check in verdict['checks']:
+        if check['status'] == 'FAIL' and not any(i['field'] == check['field'] for i in issues):
+            issues.append(dict(field=check['field'], expected=check['historical'], observed=check['current']))
+    if verdict['known_material_differences']:
+        issues.append(dict(field='known_material_differences', observed=verdict['known_material_differences']))
+    return dict(verdict, issues=issues,
+                decision='BLOCKED' if issues else 'COMPATIBLE_WITH_DISCLOSED_LIMITATIONS',
+                matched_comparison=False)
 
 
 def finite(value):
@@ -129,7 +145,7 @@ def analyze(plan, acquisition, *, synthetic=False):
                          'analysis_outcome': outcome, 'analysis_valid': valid,
                          'analysis_admitted': admitted, 'analysis_issue': issue})
     require(len(combined) == 75, 'Combined count must equal 75')
-    issues = compatibility_issues(plan, acquisition.get('environment', {}))
+    issues = descriptive_compatibility(plan, acquisition.get('environment', {}))['issues']
     cell_rows = [dict(policy=p, cell='C'+str(i), queue_depth=q, ttl_s=t,
                      **summary([r for r in combined if r['policy'] == p and r['cell'] == 'C'+str(i)], compatible=not issues))
                  for p in (P0, P1, P3) for i, (q, t) in enumerate(CELLS)]
@@ -158,13 +174,15 @@ def run(input_path, output_path, *, plan_path=PLAN_PATH, expected_sha256, synthe
     acquisition_hash = hashlib.sha256(raw).hexdigest()
     acquisition = json.loads(raw)
     combined, cells, policies, issues = analyze(plan, acquisition, synthetic=synthetic)
-    source_files = ['stage2_analysis.py', 'stage2_contract.py', 'stage2_evidence.py', 'measurement_v3.py']
+    source_files = ['stage2_analysis.py', 'stage2_contract.py', 'stage2_evidence.py', 'measurement_v3.py',
+                    'stage2_readiness.py', 'stage2_compatibility_spec.json']
     source_hashes = {name: sha256(ROOT/name) for name in source_files}
     analyzer_hash = hashlib.sha256(json.dumps(source_hashes, sort_keys=True).encode()).hexdigest()
     metadata = {'plan_sha256': expected_sha256, 'canonical_stage1_comparator_sha256': TRIALS_SHA256,
                 'stage2_acquisition_source_sha256': acquisition_hash, 'analyzer_source_sha256': analyzer_hash,
                 'synthetic_fixture_only': synthetic, 'measured': not synthetic, 'candidate_experiment': not synthetic,
-                'matched_comparison': not issues}
+                'matched_comparison': False, 'descriptive_material_compatibility': not issues,
+                'historical_comparator': historical_comparator()}
     # All outputs inherit comparison-level status. Original historical CSV
     # fields are untouched; source_measured distinguishes their actual origin.
     combined = [dict(r, **metadata) for r in combined]
@@ -184,6 +202,7 @@ def run(input_path, output_path, *, plan_path=PLAN_PATH, expected_sha256, synthe
     write_csv(out/'policy_summary.csv', policies)
     report = dict(metadata, schema='STAGE2-ANALYSIS-2', rows=75, historical_rows=25, new_rows=50,
                   compatibility_issues=issues, analyzer_source_files=source_hashes,
+                  compatibility=descriptive_compatibility(plan, acquisition.get('environment', {})),
                   invalid_or_unresolved_count=sum(not r['analysis_valid'] for r in combined),
                   descriptive_only=True, independent_physical_effect_verified=False,
                   canonical_raw_attribution_reaudited=False,
@@ -195,6 +214,9 @@ def run(input_path, output_path, *, plan_path=PLAN_PATH, expected_sha256, synthe
              '75-row combined policy comparison.\n' if not synthetic else
              '25 immutable historical reference rows plus 50 synthetic acquisition fixtures; no Stage-2 acquisition occurred.\n')
     text += '\nCompatibility issues: '+json.dumps(issues, indent=2)+'\n\n'
+    text += ('P0 is historical, descriptive, noncontemporaneous, statistically unpaired and '
+             'not independently identity-matched. Historical integration/device identity remains '
+             'HISTORICALLY_UNVERIFIED; matching entity names do not prove identity.\n\n')
     text += ('Rates are suppressed for incompatible environments and invalid/incomplete groups. '
              'Rejections and boundaries are separate; late denominator is O+L. '
              'Useful fraction is O/N_valid, not independent physical-effect verification. '

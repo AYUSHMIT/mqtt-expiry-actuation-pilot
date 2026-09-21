@@ -93,6 +93,13 @@ class CompatibilityTests(unittest.TestCase):
             for name,digest in group.items():
                 if name == 'stage2_contract.py':
                     require_committed_contract((ROOT/name).read_bytes())
+                elif name == 'stage2_analysis.py':
+                    # Current descriptive amendment propagation is authorized by
+                    # STAGE2_INTEGRATION_REPAIR.md. Keep the old audited analyzer
+                    # immutable in Git; behavioral integration tests cover today.
+                    baseline = subprocess.check_output(['git', 'show',
+                        'bf96a7bf101dbd691c960916e0eb41b0917db1bf:'+name], cwd=ROOT)
+                    self.assertEqual(hashlib.sha256(baseline).hexdigest(), digest)
                 elif name == 'stage2_runner.py':
                     # V2 lifecycle work implements this former scaffold; preserve
                     # its historical baseline and bind the new implementation.
