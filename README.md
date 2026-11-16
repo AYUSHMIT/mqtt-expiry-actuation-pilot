@@ -1,123 +1,175 @@
-# MQTT expiry pilot — isolated starter, not a claimed finding
+# MQTT Expiry Actuation Pilot
 
-Read `CONTRACT.md` first. This bundle uses **stock Home Assistant 2026.9.2 + Mosquitto 2.0.22** with ordinary HA YAML and a passive external observer/publisher. It does not install a custom HA integration or a custom message adapter. The starter endpoint is a **native virtual button**, not a physical device. The eight-second post-action service interval is a declared queueing surrogate; it cannot by itself establish poster novelty.
+A reproducible systems experiment that measures **receipt, queueing, and execution** of MQTT commands in stock Home Assistant. It compares broker-side expiry, admission-time deadline checks, and execution-time deadline checks using native virtual buttons and an external Python observer.
 
-## Reproduction status
+**Recorded result:** in the five-repetition controlled run, queued short-deadline commands executed late in 5/5 trials. Admission-time checking also allowed late execution in 5/5; execution-time checking rejected those commands in 5/5. The endpoint was virtual, and worker occupancy was an explicitly configured eight-second delay.
 
-The controlled stock-stack pilot was executed on 16 September 2026 with Home Assistant 2026.9.2 and Mosquitto 2.0.22. The classifier/configuration suite passes 11 local tests. The canonical five-repetition evidence is preserved under `evidence/canonical-5rep/`.
+[Recorded evidence](evidence/canonical-5rep/) · [Frozen experiment contract](CONTRACT.md) · [Classifier](measurement.py) · [Validation record](VALIDATION.md)
 
-The controlled result is intentionally narrow: native Home Assistant queued automation can retain work beyond the separate application deadline after MQTT delivery. This is not claimed to be an MQTT 5 protocol violation, a Home Assistant vulnerability, physical-device actuation, or a completed novelty result.
+## Inspect the result in one minute
 
-## 1. Extract into a NEW directory
-
-Keep this separate from `gridshift-safe-mode` and `gridshift-paper` and from any live home installation. The ZIP contains its own `mqtt-expiry-pilot-v1/` root directory.
+**Python 3.10+; no Docker, credentials, or third-party packages required for reanalysis.**
 
 ```bash
-cd ~/Downloads || exit 1
-python3 -m zipfile -e mqtt-expiry-pilot-v1.zip .
-cd mqtt-expiry-pilot-v1 || exit 1
-bash lab.sh doctor
+git clone https://github.com/AYUSHMIT/mqtt-expiry-actuation-pilot.git
+cd mqtt-expiry-actuation-pilot
+python3 verify_evidence.py
 ```
 
-Docker Engine and Compose v2 must be available in this WSL/Linux shell. The doctor makes no changes. It does not fetch Git repositories, install Docker, or edit your other projects. If Docker is missing, enable Docker Desktop's integration for this WSL distribution or use an already Docker-equipped machine before proceeding.
+The verifier reclassifies all **35 application trials** from the saved raw events, checks the five recorded broker-control outcomes against the CSV, checks matrix completeness, and recomputes the summary counts and gate flags. A mismatch exits with status 1.
 
-Do not loosen the loopback bindings to solve connectivity issues. These anonymous MQTT credentials are suitable only for this isolated lab.
-
-## 2. Start the two pinned stock containers
+This checks consistency of the saved evidence. It does not rerun the broker control or establish log authenticity. To inspect another completed run:
 
 ```bash
+python3 verify_evidence.py results/YOUR_RUN_DIRECTORY
+```
+
+## Recorded experiment
+
+Run `20260916T221437Z-b823e3`, recorded on **16 September 2026**:
+
+| Cell | Condition | Recorded outcome |
+| --- | --- | --- |
+| C0 | Broker persistent-session expiry control | 5/5 passed |
+| C1 | Idle worker, 3-second deadline | 5/5 on-time virtual actuations |
+| C2 | Queued worker, 3-second deadline | 5/5 late virtual actuations |
+| C3 | Queued worker, 30-second deadline | 5/5 on-time virtual actuations |
+| C4 | Parallel worker, 3-second deadline | 5/5 on-time virtual actuations |
+| C5 | Queued worker, admission-time check, 3-second deadline | 5/5 late virtual actuations |
+| C6 | Queued worker, execution-time check, 3-second deadline | 5/5 rejected before virtual actuation |
+| C7 | Queued worker, execution-time check, 30-second deadline | 5/5 on-time virtual actuations |
+
+Across 40 trial rows: **20 on-time, 10 late, 5 rejected, and 5 broker-control passes**. These are repeated observations in one controlled setup, not population estimates.
+
+The application deadline is a separate `expires_at_ms` field. The study examines what happens after delivery when a native automation retains queued work. Read the [contract](CONTRACT.md) for the precise deadline semantics, treatment matrix, and decision rules.
+
+## How the measurement works
+
+- **Stock execution path:** Mosquitto 2.0.22 → Home Assistant 2026.9.2 native MQTT triggers → native automations → `input_button.press`. No custom HA integration or forwarding adapter is installed.
+- **Declared queue occupancy:** each accepted job presses the virtual button, then occupies its worker for eight seconds. This creates a controlled backlog; it is not measured device latency.
+- **Causal attribution:** the classifier requires an actual native button state change linked to the command's HA context. A `before_action` event alone never counts as execution.
+- **Timing rules:** receipt must precede the application deadline even after a 250 ms clock allowance. Execution within ±1,000 ms of the deadline is excluded from headline timing outcomes.
+- **Failure handling:** missing receipt, ambiguous timing, duplicate executions, and reject-plus-execute traces have explicit outcomes. Missing events are not repaired by nearest-timestamp guesses.
+- **Provenance:** the live runner records image IDs/digests, configuration hashes, environment details, and an append-only JSONL event journal. An invalid run gets an `INVALID.txt` marker.
+
+The five broker-control passes are separate from the 35 application classifications. The offline verifier checks their recorded consistency; the live runner performs the broker experiment.
+
+## Run the checks
+
+From the repository root:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+bash lab.sh test
+.venv/bin/python verify_evidence.py
+bash -n lab.sh
+```
+
+The suite contains **16 tests**: 11 classifier/configuration tests and five offline-verifier tests. The latter check the canonical run and reject temporary copies with missing trials, altered summaries, missing actuation events, or an invalid-run marker. Tests do not contact Home Assistant or MQTT.
+
+On systems with `sha256sum`, check the current source manifest and the original run's pinned source subset:
+
+```bash
+sha256sum -c CHECKSUMS.sha256
+sha256sum -c evidence/canonical-5rep/SHA256SUMS.txt
+```
+
+Run both commands from the repository root. The second manifest lists source/configuration files associated with the saved run; it is not a checksum manifest of every evidence file.
+
+## Reproduce the live experiment
+
+Use a dedicated Linux/WSL lab with Python 3.10+, Docker Engine, and Compose v2. Keep the supplied loopback bindings: the broker permits anonymous access for this isolated lab. Complete the Python environment setup above first.
+
+### 1. Start the pinned stack
+
+```bash
+bash lab.sh doctor
 bash lab.sh up
 ```
 
-This pulls the two versioned images and creates only this project's containers and named volumes. Open the disposable lab at:
+Open [the local lab](http://127.0.0.1:18123) and finish Home Assistant onboarding with a lab-only account. The Compose project creates its own containers and named volumes.
 
-```text
-http://127.0.0.1:18123
-```
+### 2. Configure the stock MQTT integration
 
-Complete local Home Assistant onboarding with a lab-only account. Do not connect personal devices or cloud accounts. Do not reuse or publish personal HA credentials.
+In Home Assistant, use **Settings → Devices & services → Add integration → MQTT**:
 
-## 3. Add the stock MQTT integration once
+| Setting | Value |
+| --- | --- |
+| Broker | `broker` (Docker service hostname) |
+| Port | `1883` inside Docker; host port is `18883` |
+| Username/password | Empty |
+| TLS | Off for this loopback-only lab |
+| Protocol | MQTT 5 |
+| Client ID | Keep the stock-generated ID |
 
-In the lab UI, add MQTT through Settings -> Devices & services (or the MQTT/Connectivity entry shown by the pinned release):
-
-- Broker: `broker` (the Docker service hostname, NOT localhost).
-- Port: `1883` (container port, NOT host port 18883).
-- Username/password: empty; TLS off in this loopback-only lab.
-- Leave Home Assistant's stock-generated MQTT client ID unchanged.
-- Verify MQTT 5; if the pinned UI exposes a protocol selector, select 5.
-
-The runner identifies the stock Home Assistant MQTT 5 client from Mosquitto CONNECT and explicit subscription-binding evidence for the experiment topics. It fails closed if that attribution is not unique. If automations were loaded before MQTT was ready, restart this disposable HA container:
+The runner requires unique evidence identifying Home Assistant's MQTT 5 connection and subscriptions. If automations loaded before MQTT was ready, restart the lab's HA container, then validate:
 
 ```bash
 docker compose restart homeassistant
 bash lab.sh check
 ```
 
-`check` must report valid HA configuration. If it fails, retain the error; fix only compatibility/setup defects, document them, and preserve the experiment semantics. Do not claim a test ran if configuration validation failed.
+The configuration supplies four native button helpers and five automations. Worker automations must be enabled and idle before a run.
 
-The package supplies four native input-button helpers and five automations. All worker automations must be enabled and idle before `run.py` starts.
+### 3. Supply a lab token
 
-## 4. Prepare the observer and keep its token private
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-bash lab.sh test
-```
-
-Create a **long-lived access token for this lab only** from the lab user's Profile -> Security. Supply it without putting it in shell history:
+Create a long-lived access token under the lab user's **Profile → Security**. Read it into the shell without putting it in command history:
 
 ```bash
-read -rsp 'Dedicated HA lab token: ' HA_TOKEN; echo
+read -rsp 'Dedicated HA lab token: ' HA_TOKEN
+echo
 export HA_TOKEN
 ```
 
-Never paste the token into chat, a Git commit, or a paper. `.gitignore` excludes `.env`, local evidence, and the virtual environment; the runner does not serialize the token.
+Keep the token out of commits and shared logs. The repository ignores local runtime state, virtual environments, and new result directories; the runner does not serialize the token.
 
-## 5. Smoke run, then the frozen repetitions
+### 4. Smoke test, then collect five repetitions
 
 ```bash
 bash lab.sh run --repetitions 1
-```
-
-Inspect its event/summary files, including rejected and invalid cases. A one-repetition run is only a smoke check.
-
-```bash
 bash lab.sh run --repetitions 5
 ```
 
-There are 8 cells per repetition. Expect minutes, not hours; wall time is not a promised performance result. The script waits for native job completion rather than timing a device with a custom relay.
+Inspect the smoke run before starting the five-repetition run. There are eight cells per repetition. Keep image versions and experiment settings fixed across runs; a setup failure does not justify silently switching to `latest`.
 
-Each run records stock image IDs/digests and configuration hashes. Do not pull/change images between repeated runs. A failure to pull the exact version is a setup failure, not permission to silently switch to `latest`.
+Each run writes `results/<UTC timestamp>-<run-id>/`:
 
-Output is under `results/<UTC timestamp>-<run-id>/`. Open `summary.json` and `trials.csv` first; preserve `events.jsonl` and `environment.json` as evidence. An `INVALID.txt` means no scientific gate decision is permitted from that run. Missing state/context events must not be reconstructed by guessing from nearby timestamps.
+| File | Purpose |
+| --- | --- |
+| `summary.json` | Outcome counts and controlled-study gate flags |
+| `trials.csv` | One row per trial |
+| `events.jsonl` | Raw observer journal |
+| `environment.json` | Software/configuration provenance |
+| `INVALID.txt`, if present | Run is incomplete or invalid; do not draw a gate decision |
 
-`stock_reproduction_gate=true` means only the controlled stock-stack milestone passed. It does **not** mean a vulnerability exists, a physical device was actuated, the topic is novel, or the September 18 poster decision is automatically GO. Follow §6 of the contract for the real-integration and contribution check.
-
-## 6. Follow-through after a valid smoke run
-
-Keep the synthetic service-occupancy result labeled. By the Sept 18 review, reproduce in a documented normal consumer-IoT workflow/integration with an ordinary reason to serialize actions. Use the strongest applicable built-in expiry/settings, observe the real endpoint, and replace the starter's virtual/helper evidence where necessary. Do not write your own faulty subscriber to create this result.
-
-A benchmark/configuration-boundary finding may be useful without a CVE. But a simple restatement of HA's documented queued-condition behavior is not a completed novelty result. Do not switch scope or delay constants after seeing results without recording a dated amendment.
-
-## Stop without deleting evidence
+### 5. Stop the lab
 
 ```bash
 bash lab.sh stop
 unset HA_TOKEN
 ```
 
-The stop command preserves named volumes and results. No `docker system prune`, volume deletion, Git reset, automatic commit, or push is included.
+Stopping preserves named volumes and results. Use `bash lab.sh logs` for recent container logs when troubleshooting.
 
-## Files
+## Evidence scope
 
-- `CONTRACT.md`: frozen question, semantics, matrix, gates, claim boundaries.
-- `compose.yaml`, `mosquitto/`, `ha/`: isolated stock-stack configuration.
-- `run.py`: test publisher, native-event observer, controls, provenance capture.
-- `measurement.py`: causal matching and conservative timing classification.
-- `tests/`: synthetic self-tests, NOT empirical data.
-- `SOURCES.md`: primary sources checked on 16 September 2026.
-- `VALIDATION.md`: preparation checks and explicit unexecuted components.
+The saved run demonstrates a **controlled application queue/execution boundary** with a native virtual endpoint. It does not establish physical actuation, an MQTT 5 protocol violation, a Home Assistant vulnerability, general consumer-device behavior, or research novelty. The eight-second occupancy surrogate is part of that boundary.
 
-The bundle does not modify or depend on Arash's EV work, the prior paper repository, or any connected GitHub repository.
+`stock_reproduction_gate=true` records the narrow milestone defined by the frozen contract. It is not an automatic publication decision. Extending the work requires a meaningful real workflow, endpoint observations, and a separate novelty assessment; change the experiment contract explicitly if its semantics change.
+
+The original September preparation record and the later controlled run are distinct. [VALIDATION.md](VALIDATION.md) separates those stages from the current offline checks.
+
+## Repository map
+
+| Path | Responsibility |
+| --- | --- |
+| [run.py](run.py) | Live publisher/observer, controls, timing checks, provenance |
+| [measurement.py](measurement.py) | Pure context matching and outcome classification |
+| [verify_evidence.py](verify_evidence.py) | Offline reclassification and consistency checks |
+| [ha/](ha/) | Native automation treatments and virtual endpoints |
+| [compose.yaml](compose.yaml), [mosquitto/](mosquitto/) | Pinned, isolated stock stack |
+| [tests/](tests/) | Classifier, configuration, and verifier regression tests |
+| [evidence/canonical-5rep/](evidence/canonical-5rep/) | Preserved five-repetition run |
+| [CONTRACT.md](CONTRACT.md) | Frozen semantics, matrix, gates, and claim boundaries |
+| [SOURCES.md](SOURCES.md) | Primary-source references checked for the original pilot |
